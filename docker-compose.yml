@@ -1,0 +1,54 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: dplay-mysql
+    ports:
+      - "3307:3306"  # 로컬에서 접속할 포트 (IntelliJ/CLI는 3307 사용)
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    command: ["--character-set-server=utf8mb4","--collation-server=utf8mb4_0900_ai_ci"]
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./initdb:/docker-entrypoint-initdb.d  # 넣으면 초기 SQL 자동 실행
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dplay-server
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      # 스프링 프로필(로컬)
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+
+      # application-local.yml의 플레이스홀더를 compose에서 채우기
+      # 👉 앱 컨테이너는 DB 컨테이너의 내부 DNS 이름(mysql)로 접속
+      DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/dplay_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      # 기타 필요한 키들
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      AWS_S3_REGION: ${AWS_S3_REGION}
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
+      AWS_SECRET_KEY: ${AWS_SECRET_KEY}
+
+volumes:
+  mysql_data:
