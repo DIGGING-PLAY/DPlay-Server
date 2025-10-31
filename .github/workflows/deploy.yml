@@ -3,7 +3,8 @@ name: DEPLOY (release/* push)
 on:
   push:
     branches:
-      - 'release/**'
+      - "release/**"
+      - "release"
   workflow_dispatch:
 
 jobs:
@@ -16,63 +17,77 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # (옵션) prod yml을 시크릿에서 주입하고 싶다면 활성화
-      # - name: Push application-prod.yml from secret
-      #   run: |
-      #     mkdir -p ./src/main/resources
-      #     echo "${{ secrets.PROD_YML }}" > ./src/main/resources/application-prod.yml
-
+      # 필요 시 -x test 제거
       - name: Build (skip tests if needed)
         run: ./gradlew clean bootJar -x test
 
-      # JAR을 EC2로 업로드 (항상 /home/ubuntu/dplay/app.jar 로)
+      # 빌드 산출물 경로 캐치
+      - name: Find built jar
+        id: jar
+        run: |
+          set -e
+          JAR_PATH=$(ls -t build/libs/*SNAPSHOT.jar 2>/dev/null | head -n1)
+          if [ -z "$JAR_PATH" ]; then
+            JAR_PATH=$(ls -t build/libs/*.jar | head -n1)
+          fi
+          echo "Using JAR: $JAR_PATH"
+          echo "jar=$JAR_PATH" >> "$GITHUB_OUTPUT"
+
+      # EC2로 업로드 (target=디렉터리!)
       - name: Upload jar to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "build/libs/*.jar"
-          target: "/home/ubuntu/dplay/app.jar"
-          strip_components: 2
+          port: 22
+          source: ${{ steps.jar.outputs.jar }}
+          target: /home/ubuntu/dplay
+          overwrite: true
 
-      # Blue/Green 배포 + 헬스체크 + 스위치 + 최종 확인
+      # Blue/Green 배포 + 헬스체크 + 스위치
       - name: Blue-Green deploy & switch
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script_stop: true
           script: |
             set -euo pipefail
 
-            # 현재 upstream 포트 읽고 반대 색 결정
-            CURRENT_PORT=$(grep -o '808[12]' /home/ubuntu/dplay/nginx/upstream.conf || true)
+            # 1) 방금 올린 jar를 app.jar로 교체
+            LATEST_JAR=$(ls -t /home/ubuntu/dplay/*.jar | head -n1)
+            test -f "$LATEST_JAR"
+            mv -f "$LATEST_JAR" /home/ubuntu/dplay/app.jar
+
+            # 2) 현재 트래픽 포트(=활성 슬롯) 파악
+            #    nginx upstream은 /etc/nginx/conf.d/dplay-upstream.conf 로 관리 중
+            CURRENT_PORT=$(grep -o '808[12]' /etc/nginx/conf.d/dplay-upstream.conf || true)
             if [ "$CURRENT_PORT" = "8081" ]; then
-              NEXT=green
+              NEXT=green   # 현재 blue(8081) → 다음 green(8082)
             else
-              NEXT=blue
+              NEXT=blue    # 현재 green(8082) → 다음 blue(8081)
             fi
             echo "Next color: $NEXT"
 
-            # 후보 컨테이너 기동 + 헬스체크 (2분 대기)
+            # 3) 대기 슬롯 컨테이너 기동 + 헬스체크
             /home/ubuntu/dplay/scripts/deploy_candidate.sh "$NEXT"
 
-            # 정상이라면 트래픽 스위치
+            # 4) 트래픽 전환
             /home/ubuntu/dplay/scripts/switch.sh "$NEXT"
 
-            # 최종 스모크 테스트
-            curl -fsS http://127.0.0.1/api/actuator/health | grep '"status":"UP"'
-
-      - name: Done
-        run: echo "✅ Deployed ${GITHUB_SHA} to EC2 via Blue-Green"
+            # 5) 최종 스모크 테스트 (Nginx 경유)
+            curl -fsS http://127.0.0.1/api/actuator/health | grep -q '"status":"UP"'
+            echo "deployment finished"
