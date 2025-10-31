@@ -27,11 +27,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # 필요 시 -x test 제거
       - name: Build (skip tests if needed)
         run: ./gradlew clean bootJar -x test
 
-      # 빌드 산출물 경로 캐치
       - name: Find built jar
         id: jar
         run: |
@@ -43,8 +41,8 @@ jobs:
           echo "Using JAR: $JAR_PATH"
           echo "jar=$JAR_PATH" >> "$GITHUB_OUTPUT"
 
-      # EC2로 업로드 (target=디렉터리!)
-      - name: Upload jar to EC2
+      # 업로드는 releases/ 폴더로 (app.jar와 분리!)
+      - name: Upload jar to EC2 (to releases/)
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -52,10 +50,9 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           source: ${{ steps.jar.outputs.jar }}
-          target: /home/ubuntu/dplay
+          target: /home/ubuntu/dplay/releases
           overwrite: true
 
-      # Blue/Green 배포 + 헬스체크 + 스위치
       - name: Blue-Green deploy & switch
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -67,13 +64,13 @@ jobs:
           script: |
             set -euo pipefail
 
-            # 1) 방금 올린 jar를 app.jar로 교체
-            LATEST_JAR=$(ls -t /home/ubuntu/dplay/*.jar | head -n1)
-            test -f "$LATEST_JAR"
-            mv -f "$LATEST_JAR" /home/ubuntu/dplay/app.jar
+            # 1) 최신 업로드 산출물 선택 → app.jar로 원자적 교체
+            NEW_JAR=$(ls -t /home/ubuntu/dplay/releases/*.jar | head -n1)
+            test -f "$NEW_JAR"
+            install -m 0644 "$NEW_JAR" /home/ubuntu/dplay/app.new.jar
+            mv -f /home/ubuntu/dplay/app.new.jar /home/ubuntu/dplay/app.jar
 
-            # 2) 현재 트래픽 포트(=활성 슬롯) 파악
-            #    nginx upstream은 /etc/nginx/conf.d/dplay-upstream.conf 로 관리 중
+            # 2) 현재 트래픽 포트 확인(nginx conf.d 기준)
             CURRENT_PORT=$(grep -o '808[12]' /etc/nginx/conf.d/dplay-upstream.conf || true)
             if [ "$CURRENT_PORT" = "8081" ]; then
               NEXT=green   # 현재 blue(8081) → 다음 green(8082)
