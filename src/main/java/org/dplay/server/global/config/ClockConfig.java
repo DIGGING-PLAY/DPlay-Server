@@ -1,4 +1,4 @@
-package org.dplay.server.config;
+package org.dplay.server.global.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
