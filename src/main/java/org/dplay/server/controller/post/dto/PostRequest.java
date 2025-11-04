@@ -20,7 +20,7 @@ public record PostRequest(
         String isrc,
 
         @NotBlank(message = "추천 이유는 필수입니다.")
-        @Size(min = 1, max = 100, message = "추천 이유는 1자 이상 100자 이하여야 합니다.")
+        @Size(min = 1, max = 100, message = "추천 이유는 1자 이상 100자 이하여야 합니다")
         String content
 ) {
 }
