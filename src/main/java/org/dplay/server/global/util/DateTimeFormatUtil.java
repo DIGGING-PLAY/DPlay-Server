@@ -21,4 +21,14 @@ public final class DateTimeFormatUtil {
         Objects.requireNonNull(formatter, "formatter");
         return date.format(formatter);
     }
+
+    /**
+     * 날짜의 일(day)을 "X일" 형식으로 포맷팅
+     * @param date 포맷팅할 날짜
+     * @return "1일", "2일" 등의 형식 문자열
+     */
+    public static String formatDayOfMonth(LocalDate date) {
+        Objects.requireNonNull(date, "date");
+        return date.getDayOfMonth() + "일";
+    }
 }
