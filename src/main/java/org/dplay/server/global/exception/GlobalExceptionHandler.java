@@ -6,6 +6,7 @@ import org.dplay.server.global.response.ResponseBuilder;
 import org.dplay.server.global.response.ResponseError;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -41,7 +42,7 @@ public class GlobalExceptionHandler {
         log.error("MethodArgumentNotValidException occurred", e);
         String fieldName = e.getBindingResult().getFieldErrors().stream()
                 .findFirst()
-                .map(error -> error.getField())
+                .map(FieldError::getField)
                 .orElse("");
 
         if (fieldName.equals("year") || fieldName.equals("month")) {
