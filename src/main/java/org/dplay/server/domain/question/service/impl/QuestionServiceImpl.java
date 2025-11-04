@@ -27,13 +27,14 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public QuestionDto getTodayQuestion() {
-        return getQuestionByDate(getTodayDate());
+        Question question = getQuestionByDate(getTodayDate());
+        return QuestionDto.of(question);
     }
 
-    private QuestionDto getQuestionByDate(LocalDate date) {
-        Question question = questionRepository.findByDisplayDate(date)
+    @Override
+    public Question getQuestionByDate(LocalDate date) {
+        return questionRepository.findByDisplayDate(date)
                 .orElseThrow(() -> new DPlayException(ResponseError.QUESTION_NOT_FOUND));
-        return QuestionDto.of(question);
     }
 
     @Override
