@@ -43,7 +43,7 @@ public class QuestionController {
      * @param accessToken
      * @param request
      * @return MonthlyQuestionsResponse
-     * throws DPlayException QUESTION_NOT_FOUND 발생
+     * @ throws DPlayException QUESTION_NOT_FOUND 발생
      * @apiNote 1. 성공적으로 과거의 질문을 월별로 조회했을 때
      * / 2. 조회한 날짜에 질문이 DB에 존재하지 않을 때, DPlayException 404 QUESTION_NOT_FOUND 발생
      * / 3. 아직 공개되지 않은 미래의 질문을 조회했을 때, DPlayException 403 FORBIDDEN_RESOURCE 발생
