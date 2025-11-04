@@ -2,10 +2,10 @@ package org.dplay.server.domain.question.service;
 
 import org.dplay.server.domain.question.dto.QuestionDto;
 
-import java.time.LocalDate;
+import java.util.List;
 
 public interface QuestionService {
     QuestionDto getTodayQuestion();
 
-    QuestionDto getQuestionByDate(LocalDate date);
+    List<QuestionDto> getMonthlyQuestions(int year, int month);
 }

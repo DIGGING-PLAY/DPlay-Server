@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,14 +27,48 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public QuestionDto getTodayQuestion() {
-        LocalDate today = LocalDate.now(clock);
-        return getQuestionByDate(today);
+        return getQuestionByDate(getTodayDate());
     }
 
-    @Override
-    public QuestionDto getQuestionByDate(LocalDate date) {
+    private QuestionDto getQuestionByDate(LocalDate date) {
         Question question = questionRepository.findByDisplayDate(date)
                 .orElseThrow(() -> new DPlayException(ResponseError.QUESTION_NOT_FOUND));
         return QuestionDto.of(question);
     }
+
+    @Override
+    public List<QuestionDto> getMonthlyQuestions(int year, int month) {
+        return getQuestionsByYearAndMonth(year, month, getTodayDate());
+    }
+
+    private List<QuestionDto> getQuestionsByYearAndMonth(int year, int month, LocalDate date) {
+        int currentYear = date.getYear();
+        int currentMonth = date.getMonthValue();
+
+        if (year > currentYear || (year == currentYear && month > currentMonth)) {
+            throw new DPlayException(ResponseError.FORBIDDEN_RESOURCE);
+        }
+
+        LocalDate startDate = LocalDate.of(year, month, 1);
+        LocalDate monthEndDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+        LocalDate endDate = (year == currentYear && month == currentMonth)
+                ? date
+                : monthEndDate;
+
+        List<Question> questions = questionRepository.findByDisplayDateBetweenOrderByDisplayDateAsc(startDate, endDate);
+
+        if (questions.isEmpty()) {
+            throw new DPlayException(ResponseError.QUESTION_NOT_FOUND);
+        }
+
+        return questions.stream()
+                .map(QuestionDto::of)
+                .collect(Collectors.toList());
+    }
+
+    private LocalDate getTodayDate() {
+        return LocalDate.now(clock);
+    }
+
+
 }
