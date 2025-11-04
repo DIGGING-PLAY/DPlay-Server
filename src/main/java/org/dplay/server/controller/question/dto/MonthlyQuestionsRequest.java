@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
 public record MonthlyQuestionsRequest(
-        @Min(value = 2000, message = "연도는 2025 이상이어야 합니다")
+        @Min(value = 2025, message = "연도는 2025 이상이어야 합니다")
         @Max(value = 9999, message = "연도는 9999 이하여야 합니다")
         int year,
 
