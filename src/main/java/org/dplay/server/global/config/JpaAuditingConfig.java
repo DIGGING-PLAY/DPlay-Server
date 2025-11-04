@@ -1,9 +1,9 @@
-package org.dplay.server.config;
+package org.dplay.server.global.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @Configuration
 @EnableJpaAuditing
-public class JpaConfig {
+public class JpaAuditingConfig {
 }

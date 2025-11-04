@@ -38,7 +38,7 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
 
       # application-local.yml의 플레이스홀더를 compose에서 채우기
-      # 👉 앱 컨테이너는 DB 컨테이너의 내부 DNS 이름(mysql)로 접속
+      # 앱 컨테이너는 DB 컨테이너의 내부 DNS 이름(mysql)로 접속
       DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/dplay_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
