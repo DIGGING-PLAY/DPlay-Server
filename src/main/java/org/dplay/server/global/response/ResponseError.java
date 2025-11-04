@@ -34,7 +34,8 @@ public enum ResponseError {
     RESOURCE_ALREADY_EXISTS(4090, "이미 존재하는 리소스입니다."),
 
     // Internal Server Error (500)
-    INTERNAL_SERVER_ERROR(5000, "서버 내부 오류입니다.");
+    INTERNAL_SERVER_ERROR(5000, "서버 내부 오류입니다."),
+    CONCURRENT_OPERATION_FAILED(5001, "동시 요청으로 인한 작업 실패. 잠시 후 다시 시도해주세요.");
 
     private final int code;
     private final String message;
