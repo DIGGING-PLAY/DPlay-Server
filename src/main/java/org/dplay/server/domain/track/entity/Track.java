@@ -20,7 +20,10 @@ public class Track extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long trackId;
+    private Long id;
+
+    @Column(name = "track_id", nullable = false, unique = true)
+    private String trackId;
 
     @Column(nullable = false)
     private String songTitle;
@@ -40,6 +43,7 @@ public class Track extends BaseTimeEntity {
 
     @Builder
     private Track(
+            String trackId,
             String songTitle,
             String artistName,
             String albumName,
@@ -48,6 +52,7 @@ public class Track extends BaseTimeEntity {
             String isrc,
             String previewUrl
     ) {
+        this.trackId = trackId;
         this.songTitle = songTitle;
         this.artistName = artistName;
         this.albumName = albumName;
