@@ -12,6 +12,7 @@ public enum ResponseError {
     INVALID_INPUT_LENGTH(4003, "입력된 글자수가 허용된 범위를 벗어났습니다."),
     INVALID_INPUT_NICKNAME(4004, "닉네임 형식이 잘못되었습니다."),
     INVALID_GRANT(4005, "유효하지 않은 인가 코드입니다."),
+    INVALID_DATE_TYPE(4006, "유효하지 않은 날짜 형식입니다."),
 
     // Unauthorized (401)
     INVALID_ACCESS_TOKEN(4010, "액세스 토큰의 값이 올바르지 않습니다."),
@@ -24,7 +25,7 @@ public enum ResponseError {
     // Not Found (404)
     TARGET_NOT_FOUND(4040, "대상을 찾을 수 없습니다."),
     USER_NOT_FOUND(4041, "존재하지 않는 회원입니다."),
-    QUESTION_NOT_FOUND(4042, "오늘의 질문이 존재하지 않습니다."),
+    QUESTION_NOT_FOUND(4042, "질문이 존재하지 않습니다."),
 
     // Method Not Allowed (405)
     METHOD_NOT_ALLOWED(4050, "잘못된 HTTP method 요청입니다."),
