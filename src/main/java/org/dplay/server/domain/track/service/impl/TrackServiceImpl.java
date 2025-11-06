@@ -47,27 +47,18 @@ public class TrackServiceImpl implements TrackService {
      * @return 조회된 Track, 없으면 null
      */
     private Track tryFindTrack(String trackId) {
-        try {
-            return trackRetryService.findTrackByTrackIdWithRetry(trackId);
-        } catch (DPlayException e) {
-            // TARGET_NOT_FOUND가 아니면 예외를 그대로 전파
-            if (e.getResponseError() != ResponseError.TARGET_NOT_FOUND) {
-                throw e;
-            }
-            // TARGET_NOT_FOUND인 경우 null 반환 (생성 시도)
-            return null;
-        }
+        return trackRepository.findByTrackId(trackId).orElse(null);
     }
 
     /**
      * Track을 안전하게 생성하는 메서드
      * 동시성 이슈를 처리하여 다른 트랜잭션이 이미 생성한 경우 재조회를 시도
      *
-     * @param trackId 트랙 ID
-     * @param songTitle 노래 제목
+     * @param trackId    트랙 ID
+     * @param songTitle  노래 제목
      * @param artistName 아티스트 이름
-     * @param coverImg 앨범 커버 이미지 URL
-     * @param isrc ISRC 코드
+     * @param coverImg   앨범 커버 이미지 URL
+     * @param isrc       ISRC 코드
      * @return 생성되거나 조회된 Track
      * @throws DPlayException 동시성 처리 후에도 Track을 찾을 수 없는 경우 CONCURRENT_OPERATION_FAILED
      */
