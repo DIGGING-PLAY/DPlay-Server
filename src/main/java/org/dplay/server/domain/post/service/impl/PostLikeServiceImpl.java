@@ -53,6 +53,29 @@ public class PostLikeServiceImpl implements PostLikeService {
         return PostLikeDto.of(post);
     }
 
+    @Override
+    @Transactional
+    public PostLikeDto removeLike(final long userId, final long postId) {
+        Post post = postService.findByPostId(postId);
+
+        // User 조회 (TODO: 추후 UserService 구현 시 UserService.getUser(userId)로 변경)
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
+
+        if (!isLiked(post, user)) {
+            throw new DPlayException(ResponseError.TARGET_NOT_FOUND);
+        }
+
+        PostLike postLike = postLikeRepository.findByPostAndUser(post, user)
+                .orElseThrow(() -> new DPlayException(ResponseError.TARGET_NOT_FOUND));
+        postLikeRepository.delete(postLike);
+
+        postService.decrementLikeCount(post, userId);
+
+        log.debug("좋아요 해제 성공 (postId: {}, userId: {}, likeCount: {})", postId, userId, post.getLikeCount());
+        return PostLikeDto.of(post);
+    }
+
     /**
      * 특정 유저가 해당 게시글에 좋아요를 눌렀는지 확인합니다.
      *

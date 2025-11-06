@@ -71,8 +71,14 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public void incrementLikeCount(Post post, final long userId) {
-        isPostUser(userId, post);
         post.incrementLikeCount();
+        postRepository.save(post);
+    }
+
+    @Override
+    @Transactional
+    public void decrementLikeCount(Post post, final long userId) {
+        post.decrementLikeCount();
         postRepository.save(post);
     }
 

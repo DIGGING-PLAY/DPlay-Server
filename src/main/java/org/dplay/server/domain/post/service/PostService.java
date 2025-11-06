@@ -10,5 +10,7 @@ public interface PostService {
 
     void incrementLikeCount(Post post, final long userId);
 
+    void decrementLikeCount(Post post, final long userId);
+
     Post findByPostId(long postId);
 }
