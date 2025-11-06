@@ -16,6 +16,11 @@ public class ResponseBuilder {
         return ResponseEntity.status(responseError.getHttpStatus())
                 .body(ApiResponse.error(responseError));
     }
+
+    public static ResponseEntity<ApiResponse<Void>> error(ResponseError responseError, String customMessage) {
+        return ResponseEntity.status(responseError.getHttpStatus())
+                .body(new ApiResponse<>(false, responseError.getCode(), customMessage, null));
+    }
 }
 
 

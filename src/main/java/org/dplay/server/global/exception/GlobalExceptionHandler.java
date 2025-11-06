@@ -40,13 +40,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
         log.error("MethodArgumentNotValidException occurred", e);
-        String fieldName = e.getBindingResult().getFieldErrors().stream()
+
+        FieldError fieldError = e.getBindingResult().getFieldErrors().stream()
                 .findFirst()
-                .map(FieldError::getField)
-                .orElse("");
+                .orElse(null);
+
+        if (fieldError == null) {
+            return ResponseBuilder.error(ResponseError.BAD_REQUEST);
+        }
+
+        String fieldName = fieldError.getField();
+        String errorMessage = fieldError.getDefaultMessage();
 
         if (fieldName.equals("year") || fieldName.equals("month")) {
             return ResponseBuilder.error(ResponseError.INVALID_DATE_TYPE);
+        }
+
+        if (errorMessage != null && !errorMessage.isEmpty()) {
+            return ResponseBuilder.error(ResponseError.BAD_REQUEST, errorMessage);
         }
 
         return ResponseBuilder.error(ResponseError.BAD_REQUEST);
