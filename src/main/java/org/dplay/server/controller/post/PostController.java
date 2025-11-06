@@ -50,4 +50,28 @@ public class PostController {
         PostResponse response = PostResponse.of(postDto.postId());
         return ResponseBuilder.created(response);
     }
+
+    /**
+     * [ 추천글 삭제 API ]
+     *
+     * @param accessToken
+     * @param postId
+     * @return null
+     * @apiNote 1. 성공적으로 추천글을 삭제했을 때
+     * / 2. postId에 해당하는 추천글이 존재하지 않을 때, DPlayException TARGET_NOT_FOUND 발생
+     * / 3. 사용자가 존재하지 않을 때, DPlayException USER_NOT_FOUND 발생
+     * / 4. 사용자가 작성한 글이 아닐 때, DPlayExceptionFORBIDDEN_RESOURCE 발생
+     */
+    @PostMapping
+    public ResponseEntity<ApiResponse<Void>> deletePost(
+            @RequestHeader("Authorization") final String accessToken,
+            @PathVariable("postId") final long postId
+    ) {
+        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
+        // 예: Long userId = authService.getUserIdFromToken(accessToken);
+        Long userId = Long.getLong(accessToken); // DB에 있는 유저 ID
+
+        postService.deletePostByPostId(userId, postId);
+        return ResponseBuilder.ok(null);
+    }
 }

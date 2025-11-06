@@ -34,7 +34,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public PostDto createPost(Long userId, String trackId, String songTitle, String artistName, String coverImg, String isrc, String content) {
+    public PostDto createPost(final long userId, String trackId, String songTitle, String artistName, String coverImg, String isrc, String content) {
         LocalDate today = LocalDate.now(clock);
         Question question = questionService.getQuestionByDate(today);
 
@@ -56,6 +56,19 @@ public class PostServiceImpl implements PostService {
         Post savedPost = postRepository.save(post);
 
         return PostDto.of(savedPost);
+    }
+
+    @Override
+    @Transactional
+    public void deletePostByPostId(final long userId, final long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new DPlayException(ResponseError.TARGET_NOT_FOUND));
+
+        if (!post.getUser().getUserId().equals(userId)) {
+            throw new DPlayException(ResponseError.FORBIDDEN_RESOURCE);
+        }
+
+        postRepository.delete(post);
     }
 }
 
