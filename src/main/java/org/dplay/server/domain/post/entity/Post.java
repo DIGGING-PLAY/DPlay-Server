@@ -67,4 +67,21 @@ public class Post extends BaseTimeEntity {
         this.likeCount = likeCount;
         this.saveCount = saveCount;
     }
+
+    /**
+     * 좋아요 개수를 증가시킵니다.
+     */
+    public void incrementLikeCount() {
+        this.likeCount++;
+    }
+
+    /**
+     * 좋아요 개수를 감소시킵니다.
+     * likeCount가 0보다 작아지지 않도록 보장합니다.
+     */
+    public void decrementLikeCount() {
+        if (this.likeCount > 0) {
+            this.likeCount--;
+        }
+    }
 }

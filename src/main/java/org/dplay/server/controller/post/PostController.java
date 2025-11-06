@@ -2,9 +2,12 @@ package org.dplay.server.controller.post;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.dplay.server.controller.post.dto.PostLikeResponse;
 import org.dplay.server.controller.post.dto.PostRequest;
 import org.dplay.server.controller.post.dto.PostResponse;
 import org.dplay.server.domain.post.dto.PostDto;
+import org.dplay.server.domain.post.dto.PostLikeDto;
+import org.dplay.server.domain.post.service.PostLikeService;
 import org.dplay.server.domain.post.service.PostService;
 import org.dplay.server.global.response.ApiResponse;
 import org.dplay.server.global.response.ResponseBuilder;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class PostController {
 
     private final PostService postService;
+    private final PostLikeService postLikeService;
 
     /**
      * [ 추천글 등록 API ]
@@ -73,5 +77,30 @@ public class PostController {
 
         postService.deletePostByPostId(userId, postId);
         return ResponseBuilder.ok(null);
+    }
+
+    /**
+     * [ 추천글 좋아요 등록 API ]
+     *
+     * @param accessToken
+     * @param postId
+     * @return PostLikeResponse
+     * @apiNote 1. 성공적으로 좋아요를 추가했을 때
+     * / 2. postId에 해당하는 추천글이 존재하지 않을 때, DPlayException TARGET_NOT_FOUND 발생
+     * / 3. 사용자가 존재하지 않을 때, DPlayException USER_NOT_FOUND 발생
+     * / 4. 이미 좋아요를 누른 경우, DPlayException RESOURCE_ALREADY_EXISTS 발생
+     */
+    @PostMapping("/{postId}/likes")
+    public ResponseEntity<ApiResponse<PostLikeResponse>> addLike(
+            @RequestHeader("Authorization") final String accessToken,
+            @PathVariable("postId") final long postId
+    ) {
+        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
+        // 예: Long userId = authService.getUserIdFromToken(accessToken);
+        Long userId = 2L; // DB에 있는 유저 ID
+
+        PostLikeDto postLikeDto = postLikeService.addLike(userId, postId);
+        PostLikeResponse response = PostLikeResponse.of(postLikeDto.likeCount());
+        return ResponseBuilder.created(response);
     }
 }

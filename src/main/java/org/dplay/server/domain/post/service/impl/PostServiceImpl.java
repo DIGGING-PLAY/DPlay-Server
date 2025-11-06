@@ -61,14 +61,31 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public void deletePostByPostId(final long userId, final long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new DPlayException(ResponseError.TARGET_NOT_FOUND));
+        Post post = findByPostId(postId);
 
+        isPostUser(userId, post);
+
+        postRepository.delete(post);
+    }
+
+    @Override
+    @Transactional
+    public void incrementLikeCount(Post post, final long userId) {
+        isPostUser(userId, post);
+        post.incrementLikeCount();
+        postRepository.save(post);
+    }
+
+    @Override
+    public Post findByPostId(final long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new DPlayException(ResponseError.TARGET_NOT_FOUND));
+    }
+
+    private void isPostUser(final long userId, Post post) {
         if (!post.getUser().getUserId().equals(userId)) {
             throw new DPlayException(ResponseError.FORBIDDEN_RESOURCE);
         }
-
-        postRepository.delete(post);
     }
 }
 
