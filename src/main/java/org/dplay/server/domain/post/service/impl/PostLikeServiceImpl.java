@@ -47,7 +47,7 @@ public class PostLikeServiceImpl implements PostLikeService {
                 .build();
         postLikeRepository.save(postLike);
 
-        postService.incrementLikeCount(post, userId);
+        postService.incrementLikeCount(post);
 
         log.debug("좋아요 추가 성공 (postId: {}, userId: {}, likeCount: {})", postId, userId, post.getLikeCount());
         return PostLikeDto.of(post);
@@ -70,7 +70,7 @@ public class PostLikeServiceImpl implements PostLikeService {
                 .orElseThrow(() -> new DPlayException(ResponseError.TARGET_NOT_FOUND));
         postLikeRepository.delete(postLike);
 
-        postService.decrementLikeCount(post, userId);
+        postService.decrementLikeCount(post);
 
         log.debug("좋아요 해제 성공 (postId: {}, userId: {}, likeCount: {})", postId, userId, post.getLikeCount());
         return PostLikeDto.of(post);
