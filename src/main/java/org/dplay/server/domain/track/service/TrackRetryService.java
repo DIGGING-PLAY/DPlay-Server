@@ -1,9 +1,8 @@
 package org.dplay.server.domain.track.service;
 
 import org.dplay.server.domain.track.entity.Track;
-
-import java.util.Optional;
+import org.dplay.server.global.exception.DPlayException;
 
 public interface TrackRetryService {
-    Optional<Track> findTrackByTrackIdWithRetry(String trackId);
+    Track findTrackByTrackIdWithRetry(String trackId) throws DPlayException;
 }
