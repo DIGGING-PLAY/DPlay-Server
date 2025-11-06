@@ -38,11 +38,11 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public List<QuestionDto> getMonthlyQuestions(int year, int month) {
+    public List<QuestionDto> getMonthlyQuestions(final int year, final int month) {
         return getQuestionsByYearAndMonth(year, month, getTodayDate());
     }
 
-    private List<QuestionDto> getQuestionsByYearAndMonth(int year, int month, LocalDate date) {
+    private List<QuestionDto> getQuestionsByYearAndMonth(final int year, final int month, LocalDate date) {
         int currentYear = date.getYear();
         int currentMonth = date.getMonthValue();
 
