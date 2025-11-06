@@ -41,7 +41,7 @@ public class TrackServiceImpl implements TrackService {
 
     /**
      * Track을 조회 시도하는 메서드
-     * 재시도 로직을 포함하며, Track을 찾지 못하면 null을 반환
+     * Track을 찾지 못하면 null을 반환
      *
      * @param trackId 조회할 trackId
      * @return 조회된 Track, 없으면 null
