@@ -103,4 +103,29 @@ public class PostController {
         PostLikeResponse response = PostLikeResponse.of(postLikeDto.likeCount());
         return ResponseBuilder.created(response);
     }
+
+    /**
+     * [ 추천글 좋아요 해제 API ]
+     *
+     * @param accessToken
+     * @param postId
+     * @return PostLikeResponse
+     * @apiNote 1. 성공적으로 좋아요를 해제했을 때
+     * / 2. postId에 해당하는 추천글이 존재하지 않을 때, DPlayException TARGET_NOT_FOUND 발생
+     * / 3. 사용자가 존재하지 않을 때, DPlayException USER_NOT_FOUND 발생
+     * / 4. 좋아요를 누르지 않은 경우, DPlayException TARGET_NOT_FOUND 발생
+     */
+    @DeleteMapping("/{postId}/likes")
+    public ResponseEntity<ApiResponse<PostLikeResponse>> removeLike(
+            @RequestHeader("Authorization") final String accessToken,
+            @PathVariable("postId") final long postId
+    ) {
+        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
+        // 예: Long userId = authService.getUserIdFromToken(accessToken);
+        Long userId = 2L; // DB에 있는 유저 ID
+
+        PostLikeDto postLikeDto = postLikeService.removeLike(userId, postId);
+        PostLikeResponse response = PostLikeResponse.of(postLikeDto.likeCount());
+        return ResponseBuilder.ok(response);
+    }
 }
