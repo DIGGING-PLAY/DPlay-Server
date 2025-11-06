@@ -9,7 +9,7 @@ import java.util.List;
 public interface QuestionService {
     QuestionDto getTodayQuestion();
 
-    List<QuestionDto> getMonthlyQuestions(int year, int month);
+    List<QuestionDto> getMonthlyQuestions(final int year, final int month);
 
     Question getQuestionByDate(LocalDate date);
 }
