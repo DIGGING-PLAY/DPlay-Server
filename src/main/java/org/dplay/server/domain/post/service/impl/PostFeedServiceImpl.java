@@ -72,7 +72,7 @@ public class PostFeedServiceImpl implements PostFeedService {
         int visibleLimit = determineVisibleLimit(limit, locked);
         long totalCount = postQueryService.countByQuestion(questionId);
 
-        Cursor decodedCursor = decodeCursor(cursor);
+        Cursor decodedCursor = locked ? Cursor.EMPTY : decodeCursor(cursor);
         boolean isFirstPage = !locked && decodedCursor.isEmpty();
 
         List<Post> responsePosts = new ArrayList<>();
