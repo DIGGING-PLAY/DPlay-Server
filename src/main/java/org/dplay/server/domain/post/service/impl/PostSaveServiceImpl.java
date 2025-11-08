@@ -13,6 +13,9 @@ import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+
+import java.util.List;
 
 /**
  * PostSave 관련 비즈니스 로직을 처리하는 서비스
@@ -71,6 +74,14 @@ public class PostSaveServiceImpl implements PostSaveService {
         postService.decrementSaveCount(post);
 
         log.debug("스크랩 해제 성공 (postId: {}, userId: {}, saveCount: {})", postId, userId, post.getSaveCount());
+    }
+
+    @Override
+    public List<Long> findScrappedPostIds(User user, List<Post> posts) {
+        if (CollectionUtils.isEmpty(posts)) {
+            return List.of();
+        }
+        return postSaveRepository.findPostIdsByUserAndPosts(user, posts);
     }
 
     /**

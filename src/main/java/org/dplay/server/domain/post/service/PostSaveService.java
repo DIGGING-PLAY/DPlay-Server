@@ -1,5 +1,10 @@
 package org.dplay.server.domain.post.service;
 
+import org.dplay.server.domain.post.entity.Post;
+import org.dplay.server.domain.user.entity.User;
+
+import java.util.List;
+
 public interface PostSaveService {
     /**
      * 스크랩을 추가합니다.
@@ -16,5 +21,7 @@ public interface PostSaveService {
      * @param postId 게시글 ID
      */
     void removeScrap(final long userId, final long postId);
+
+    List<Long> findScrappedPostIds(User user, List<Post> posts);
 }
 

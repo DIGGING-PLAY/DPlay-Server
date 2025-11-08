@@ -27,7 +27,8 @@ public class PostSave extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long scrapId;
+    @Column(name = "scrap_id")
+    private Long saveId;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "post_id", nullable = false)
