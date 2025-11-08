@@ -61,6 +61,7 @@ public class PostFeedServiceImpl implements PostFeedService {
         List<QuestionEditorPick> editorPicks = questionEditorPickService.getOrderedEditorPicks(questionId);
         List<Post> editorPickPosts = editorPicks.stream()
                 .map(QuestionEditorPick::getPost)
+                .limit(LOCKED_VISIBLE_LIMIT)
                 .toList();
         Set<Long> editorPickPostIds = editorPickPosts.stream()
                 .map(Post::getPostId)
