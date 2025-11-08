@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dplay.server.domain.track.entity.Track;
 import org.dplay.server.domain.track.repository.TrackRepository;
-import org.dplay.server.domain.track.service.TrackRetryService;
 import org.dplay.server.domain.track.service.TrackService;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
@@ -21,7 +20,6 @@ import java.util.Optional;
 public class TrackServiceImpl implements TrackService {
 
     private final TrackRepository trackRepository;
-    private final TrackRetryService trackRetryService;
 
     @Override
     public Optional<Track> findTrackByTrackId(String trackId) {
