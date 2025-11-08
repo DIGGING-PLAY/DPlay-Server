@@ -8,9 +8,13 @@ public interface PostService {
 
     void deletePostByPostId(final long userId, final long postId);
 
-    void incrementLikeCount(Post post, final long userId);
+    void incrementLikeCount(Post post);
 
-    void decrementLikeCount(Post post, final long userId);
+    void decrementLikeCount(Post post);
+
+    void incrementSaveCount(Post post);
+
+    void decrementSaveCount(Post post);
 
     Post findByPostId(long postId);
 }
