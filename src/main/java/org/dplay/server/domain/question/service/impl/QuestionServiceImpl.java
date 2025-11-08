@@ -38,6 +38,12 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
+    public Question getQuestionById(Long questionId) {
+        return questionRepository.findById(questionId)
+                .orElseThrow(() -> new DPlayException(ResponseError.QUESTION_NOT_FOUND));
+    }
+
+    @Override
     public List<QuestionDto> getMonthlyQuestions(final int year, final int month) {
         return getQuestionsByYearAndMonth(year, month, getTodayDate());
     }

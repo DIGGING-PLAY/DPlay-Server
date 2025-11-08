@@ -12,4 +12,6 @@ public interface QuestionService {
     List<QuestionDto> getMonthlyQuestions(final int year, final int month);
 
     Question getQuestionByDate(LocalDate date);
+
+    Question getQuestionById(Long questionId);
 }
