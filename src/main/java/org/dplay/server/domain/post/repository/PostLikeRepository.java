@@ -4,7 +4,10 @@ import org.dplay.server.domain.post.entity.Post;
 import org.dplay.server.domain.post.entity.PostLike;
 import org.dplay.server.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
@@ -25,4 +28,7 @@ public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
      * @return PostLike (없으면 Optional.empty())
      */
     Optional<PostLike> findByPostAndUser(Post post, User user);
+
+    @Query("SELECT pl.post.postId FROM PostLike pl WHERE pl.post IN :posts AND pl.user = :user")
+    List<Long> findPostIdsByUserAndPosts(@Param("user") User user, @Param("posts") List<Post> posts);
 }

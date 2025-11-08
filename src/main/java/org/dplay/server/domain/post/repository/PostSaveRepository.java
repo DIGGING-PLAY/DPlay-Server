@@ -4,7 +4,10 @@ import org.dplay.server.domain.post.entity.Post;
 import org.dplay.server.domain.post.entity.PostSave;
 import org.dplay.server.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface PostSaveRepository extends JpaRepository<PostSave, Long> {
@@ -25,5 +28,8 @@ public interface PostSaveRepository extends JpaRepository<PostSave, Long> {
      * @return PostSave (없으면 Optional.empty())
      */
     Optional<PostSave> findByPostAndUser(Post post, User user);
+
+    @Query("SELECT ps.post.postId FROM PostSave ps WHERE ps.post IN :posts AND ps.user = :user")
+    List<Long> findPostIdsByUserAndPosts(@Param("user") User user, @Param("posts") List<Post> posts);
 }
 
