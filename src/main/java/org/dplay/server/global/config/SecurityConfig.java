@@ -22,7 +22,11 @@ public class SecurityConfig {
     private final DPlayJwtAuthenticationEntryPoint dPlayJwtAuthenticationEntryPoint;
     private final DPlayAccessDeniedHandler dPlayAccessDeniedHandler;
 
-    public static final String[] AUTH_WHITE_LIST = {};
+    public static final String[] AUTH_WHITE_LIST = {
+            "/health/success/ok",
+            "/health/success/created",
+            "/v1/auth/login",
+    };
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
