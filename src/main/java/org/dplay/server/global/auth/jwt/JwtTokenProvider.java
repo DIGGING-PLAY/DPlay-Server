@@ -12,8 +12,8 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.util.Base64;
 import java.util.Date;
 
 @Component
@@ -29,8 +29,7 @@ public class JwtTokenProvider implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        String encodedKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
-        this.signingKey = Keys.hmacShaKeyFor(encodedKey.getBytes());
+        this.signingKey = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
     public JwtTokenResponse issueTokens(Long userId) {
