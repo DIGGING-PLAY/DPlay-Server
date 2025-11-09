@@ -27,21 +27,28 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public QuestionDto getTodayQuestion() {
-        return getQuestionByDate(getTodayDate());
-    }
-
-    private QuestionDto getQuestionByDate(LocalDate date) {
-        Question question = questionRepository.findByDisplayDate(date)
-                .orElseThrow(() -> new DPlayException(ResponseError.QUESTION_NOT_FOUND));
+        Question question = getQuestionByDate(getTodayDate());
         return QuestionDto.of(question);
     }
 
     @Override
-    public List<QuestionDto> getMonthlyQuestions(int year, int month) {
+    public Question getQuestionByDate(LocalDate date) {
+        return questionRepository.findByDisplayDate(date)
+                .orElseThrow(() -> new DPlayException(ResponseError.QUESTION_NOT_FOUND));
+    }
+
+    @Override
+    public Question getQuestionById(Long questionId) {
+        return questionRepository.findById(questionId)
+                .orElseThrow(() -> new DPlayException(ResponseError.QUESTION_NOT_FOUND));
+    }
+
+    @Override
+    public List<QuestionDto> getMonthlyQuestions(final int year, final int month) {
         return getQuestionsByYearAndMonth(year, month, getTodayDate());
     }
 
-    private List<QuestionDto> getQuestionsByYearAndMonth(int year, int month, LocalDate date) {
+    private List<QuestionDto> getQuestionsByYearAndMonth(final int year, final int month, LocalDate date) {
         int currentYear = date.getYear();
         int currentMonth = date.getMonthValue();
 

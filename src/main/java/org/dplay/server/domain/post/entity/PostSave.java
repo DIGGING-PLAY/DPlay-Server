@@ -23,11 +23,12 @@ import org.hibernate.annotations.OnDeleteAction;
                 @Index(name = "idx_post_save_user", columnList = "user_id")
         }
 )
-public class PostScrap extends BaseTimeEntity {
+public class PostSave extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long scrapId;
+    @Column(name = "scrap_id")
+    private Long saveId;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "post_id", nullable = false)
@@ -40,8 +41,9 @@ public class PostScrap extends BaseTimeEntity {
     private User user;
 
     @Builder
-    private PostScrap(Post post, User user) {
+    private PostSave(Post post, User user) {
         this.post = post;
         this.user = user;
     }
 }
+
