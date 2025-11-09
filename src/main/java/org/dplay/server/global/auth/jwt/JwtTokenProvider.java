@@ -72,7 +72,11 @@ public class JwtTokenProvider implements InitializingBean {
 
     public Long getUserIdFromJwt(String token) {
         Claims claims = getBody(token);
-        return Long.valueOf(claims.get(Constant.USER_ID).toString());
+        Object userId = claims.get(Constant.USER_ID);
+        if (userId == null) {
+            throw new DPlayException(ResponseError.INVALID_TOKEN);
+        }
+        return Long.valueOf(userId.toString());
     }
 
     public static Object checkPrincipal(final Object principal) {

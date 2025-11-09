@@ -31,11 +31,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
         final String token = getJwtFromRequest(request);
-        jwtTokenValidator.validateAccessToken(token);
-        Long userId = jwtTokenProvider.getUserIdFromJwt(token);
-        UserAuthentication authentication = UserAuthentication.createUserAuthentication(userId);
-        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        if (token != null) {
+            jwtTokenValidator.validateAccessToken(token);
+            Long userId = jwtTokenProvider.getUserIdFromJwt(token);
+            UserAuthentication authentication = UserAuthentication.createUserAuthentication(userId);
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
         filterChain.doFilter(request, response);
     }
 
