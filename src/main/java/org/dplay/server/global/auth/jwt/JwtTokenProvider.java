@@ -25,12 +25,12 @@ public class JwtTokenProvider implements InitializingBean {
     @Value("${jwt.secret-key}")
     private String secretKey;
 
-    private Key singingKey;
+    private Key signingKey;
 
     @Override
     public void afterPropertiesSet() throws Exception {
         String encodedKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
-        this.singingKey = Keys.hmacShaKeyFor(encodedKey.getBytes());
+        this.signingKey = Keys.hmacShaKeyFor(encodedKey.getBytes());
     }
 
     public JwtTokenResponse issueTokens(Long userId) {
@@ -52,7 +52,7 @@ public class JwtTokenProvider implements InitializingBean {
         return Jwts.builder()
                 .setHeaderParam(Header.TYPE, Header.JWT_TYPE)
                 .setClaims(claims)
-                .signWith(singingKey)
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -65,7 +65,7 @@ public class JwtTokenProvider implements InitializingBean {
 
     public Claims getBody(final String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(singingKey)
+                .setSigningKey(signingKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
