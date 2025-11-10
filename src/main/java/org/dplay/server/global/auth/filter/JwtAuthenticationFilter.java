@@ -1,4 +1,4 @@
-package org.dplay.server.global.auth;
+package org.dplay.server.global.auth.filter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.dplay.server.global.auth.UserAuthentication;
 import org.dplay.server.global.auth.constant.Constant;
 import org.dplay.server.global.auth.jwt.JwtTokenProvider;
 import org.dplay.server.global.auth.jwt.JwtTokenValidator;
@@ -31,8 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
         final String token = getJwtFromRequest(request);
-
-        if (token != null) {
+        if (StringUtils.hasText(token)) {
             jwtTokenValidator.validateAccessToken(token);
             Long userId = jwtTokenProvider.getUserIdFromJwt(token);
             UserAuthentication authentication = UserAuthentication.createUserAuthentication(userId);

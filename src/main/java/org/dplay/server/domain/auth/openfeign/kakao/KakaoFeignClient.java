@@ -1,4 +1,5 @@
 package org.dplay.server.domain.auth.openfeign.kakao;
+
 import org.dplay.server.domain.auth.openfeign.kakao.dto.KakaoUserDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.HttpHeaders;
