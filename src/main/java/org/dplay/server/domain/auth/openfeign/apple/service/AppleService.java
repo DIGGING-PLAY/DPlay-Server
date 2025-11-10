@@ -26,7 +26,7 @@ public class AppleService {
         ApplePublicKeys applePublicKeys = appleFeignClient.getApplePublicKeys();
         PublicKey publicKey = publicKeyGenerator.generatePublicKey(headers, applePublicKeys);
         Claims claims = appleJwtParser.parsePublicKeyAndGetClaims(identityToken, publicKey);
-        return SocialUserDto.of(claims.get("sub", String.class), claims.get("email", String.class));
+        return SocialUserDto.of(claims.get("sub", String.class));
     }
 
 }

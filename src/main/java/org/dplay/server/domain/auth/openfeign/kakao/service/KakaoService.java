@@ -12,10 +12,11 @@ import org.springframework.stereotype.Service;
 public class KakaoService {
 
     private final KakaoFeignClient kakaoFeignClient;
+
     public SocialUserDto getSocialUserInfo(String providerToken) {
         KakaoUserDto kakaoUserDto = kakaoFeignClient.getUserInformation(Constant.BEARER_TOKEN_PREFIX + providerToken);
         return SocialUserDto.of(
-                kakaoUserDto.id().toString(),
-                kakaoUserDto.kakaoAccount().email());
+                kakaoUserDto.id().toString()
+        );
     }
 }

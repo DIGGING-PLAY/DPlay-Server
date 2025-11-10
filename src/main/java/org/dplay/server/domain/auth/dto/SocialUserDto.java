@@ -1,8 +1,8 @@
 package org.dplay.server.domain.auth.dto;
 
-public record SocialUserDto(String platformId, String email) {
+public record SocialUserDto(String platformId) {
 
-    public static SocialUserDto of(String platformId, String email) {
-        return new SocialUserDto(platformId, email);
+    public static SocialUserDto of(String platformId) {
+        return new SocialUserDto(platformId);
     }
 }

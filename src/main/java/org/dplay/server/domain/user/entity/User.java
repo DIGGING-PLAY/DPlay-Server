@@ -15,8 +15,7 @@ import org.dplay.server.domain.user.Platform;
         name = "users",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_users_nickname", columnNames = {"nickname"}),
-                @UniqueConstraint(name = "uk_users_platform_id", columnNames = {"platform_id"}),
-                @UniqueConstraint(name = "uk_users_email", columnNames = {"email"})
+                @UniqueConstraint(name = "uk_users_platform_id", columnNames = {"platform_id"})
         }
 )
 public class User extends BaseTimeEntity {
@@ -37,9 +36,6 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private Platform platform;
 
-    @Column(nullable = false)
-    private String email;
-
     @Lob
     private String refreshToken;
 
@@ -52,7 +48,6 @@ public class User extends BaseTimeEntity {
             String profileImg,
             String platformId,
             Platform platform,
-            String email,
             String refreshToken,
             boolean pushOptIn
     ) {
@@ -60,7 +55,6 @@ public class User extends BaseTimeEntity {
         this.profileImg = profileImg;
         this.platformId = platformId;
         this.platform = platform;
-        this.email = email;
         this.refreshToken = refreshToken;
         this.pushOptIn = pushOptIn;
     }
