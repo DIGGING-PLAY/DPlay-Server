@@ -9,7 +9,6 @@ import org.dplay.server.domain.auth.dto.SocialUserDto;
 import org.dplay.server.domain.auth.entity.Token;
 import org.dplay.server.domain.auth.openfeign.apple.service.AppleService;
 import org.dplay.server.domain.auth.openfeign.kakao.service.KakaoService;
-import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.UserRetriever;
 import org.dplay.server.domain.user.UserSaver;
 import org.dplay.server.domain.user.entity.User;
@@ -32,40 +31,30 @@ public class AuthService {
     @Transactional
     public JwtTokenResponse login(final String providerToken, final LoginRequest loginRequest) {
         SocialUserDto socialUserDto = getSocialInfo(providerToken, loginRequest);
-        User user = loadOrCreateUser(loginRequest.platform(), socialUserDto);
-        JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
-        tokenSaver.save(
-                Token.builder()
-                        .id(user.getUserId())
-                        .refreshToken(tokens.refreshToken())
-                        .build()
-        );
-        return tokens;
+        boolean isRegistered = userRetriever.existsByProviderIdAndProvider(socialUserDto.platformId(), loginRequest.platform());
+
+        if (isRegistered) {
+            User user = userRetriever.findByProviderIdAndProvider(socialUserDto.platformId(), loginRequest.platform());
+            JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
+            tokenSaver.save(
+                    Token.builder()
+                            .id(user.getUserId())
+                            .refreshToken(tokens.refreshToken())
+                            .build()
+            );
+            return tokens;
+        } else {
+            throw new DPlayException(ResponseError.USER_NOT_FOUND);
+        }
     }
 
     private SocialUserDto getSocialInfo(final String providerToken, final LoginRequest loginRequest) {
-        if (loginRequest.platform().toString().equals("KAKAO")){
+        if (loginRequest.platform().toString().equals("KAKAO")) {
             return kakaoService.getSocialUserInfo(providerToken);
-        } else if (loginRequest.platform().toString().equals("APPLE")){
+        } else if (loginRequest.platform().toString().equals("APPLE")) {
             return appleService.getSocialUserInfo(providerToken);
         } else {
             throw new DPlayException(ResponseError.INVALID_PLATFORM_TYPE);
         }
-    }
-
-    private User loadOrCreateUser(final Platform platform, final SocialUserDto socialUserDto){
-        boolean isRegistered = userRetriever.existsByProviderIdAndProvider(socialUserDto.platformId(), platform);
-
-        if (!isRegistered){
-            User newUser = User.builder()
-                    .platform(platform)
-                    .platformId(socialUserDto.platformId())
-                    .email(socialUserDto.email())
-                    .build();
-
-            userSaver.save(newUser);
-        }
-
-        return userRetriever.findByProviderIdAndProvider(socialUserDto.platformId(), platform);
     }
 }
