@@ -5,6 +5,8 @@ import org.dplay.server.domain.auth.dto.SocialUserDto;
 import org.dplay.server.domain.auth.openfeign.kakao.KakaoFeignClient;
 import org.dplay.server.domain.auth.openfeign.kakao.dto.KakaoUserDto;
 import org.dplay.server.global.auth.constant.Constant;
+import org.dplay.server.global.exception.DPlayException;
+import org.dplay.server.global.response.ResponseError;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,9 +16,15 @@ public class KakaoService {
     private final KakaoFeignClient kakaoFeignClient;
 
     public SocialUserDto getSocialUserInfo(String providerToken) {
-        KakaoUserDto kakaoUserDto = kakaoFeignClient.getUserInformation(Constant.BEARER_TOKEN_PREFIX + providerToken);
-        return SocialUserDto.of(
-                kakaoUserDto.id().toString()
-        );
+        try {
+            KakaoUserDto kakaoUserDto = kakaoFeignClient.getUserInformation(Constant.BEARER_TOKEN_PREFIX + providerToken);
+            return SocialUserDto.of(
+                    kakaoUserDto.id().toString()
+            );
+        } catch (Exception e) {
+            throw new DPlayException(ResponseError.INVALID_TOKEN);
+        }
+
+
     }
 }
