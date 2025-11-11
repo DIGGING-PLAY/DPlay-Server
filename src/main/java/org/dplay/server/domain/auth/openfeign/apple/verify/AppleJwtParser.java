@@ -33,6 +33,12 @@ public class AppleJwtParser {
     }
 
     public Claims parsePublicKeyAndGetClaims(String idToken, PublicKey publicKey) {
+        if (idToken == null || idToken.isEmpty()) {
+            throw new DPlayException(ResponseError.INVALID_TOKEN);
+        }
+        if (publicKey == null) {
+            throw new DPlayException(ResponseError.INVALID_TOKEN);
+        }
         try {
             return Jwts.parserBuilder()
                     .setSigningKey(publicKey)
