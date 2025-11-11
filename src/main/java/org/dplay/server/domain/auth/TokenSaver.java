@@ -12,6 +12,9 @@ public class TokenSaver {
     private final TokenRepository tokenRepository;
 
     public Token save(final Token token) {
+        if (token == null) {
+            throw new IllegalArgumentException("Token cannot be null");
+        }
         return tokenRepository.save(token);
     }
 
