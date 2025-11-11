@@ -20,6 +20,9 @@ public class AppleJwtParser {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public Map<String, String> parseHeaders(String identityToken) {
+        if (identityToken == null || identityToken.isEmpty()) {
+            throw new DPlayException(ResponseError.INVALID_TOKEN);
+        }
         try {
             String encodedHeader = identityToken.split(IDENTITY_TOKEN_VALUE_DELIMITER)[HEADER_INDEX];
             String decodedHeader = new String(Base64.getUrlDecoder().decode(encodedHeader));
