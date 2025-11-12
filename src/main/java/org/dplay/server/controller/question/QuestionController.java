@@ -12,6 +12,9 @@ import org.dplay.server.global.response.ResponseBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Clock;
+import java.time.LocalDate;
+
 @RestController
 @RequestMapping("/v1/questions")
 @RequiredArgsConstructor
@@ -19,6 +22,7 @@ public class QuestionController {
 
     private final QuestionService questionService;
     private final PostFeedService postFeedService;
+    private final Clock clock;
 
     /**
      * [ 오늘의 질문을 조회하는 API ]
@@ -86,6 +90,26 @@ public class QuestionController {
         );
 
         PastRecommendationFeedResponse response = PastRecommendationFeedResponse.from(result);
+        return ResponseBuilder.ok(response);
+    }
+
+    /**
+     * [ 오늘 추천글 조회 API ]
+     */
+    @GetMapping("/today/posts")
+    public ResponseEntity<ApiResponse<TodayRecommendationFeedResponse>> getTodayRecommendationPosts(
+            @RequestHeader("Authorization") final String accessToken
+    ) {
+        Long userId = 2L; // TODO: 추후 인증 구현 시 accessToken 에서 userId 추출
+
+        LocalDate today = LocalDate.now(clock);
+
+        PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(
+                userId,
+                today
+        );
+
+        TodayRecommendationFeedResponse response = TodayRecommendationFeedResponse.from(result);
         return ResponseBuilder.ok(response);
     }
 }
