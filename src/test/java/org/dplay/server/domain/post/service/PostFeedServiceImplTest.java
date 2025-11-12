@@ -1,5 +1,6 @@
 package org.dplay.server.domain.post.service;
 
+import org.dplay.server.domain.post.dto.PostFeedItemDto;
 import org.dplay.server.domain.post.dto.PostFeedResultDto;
 import org.dplay.server.domain.post.entity.Post;
 import org.dplay.server.domain.post.service.impl.PostFeedServiceImpl;
@@ -11,24 +12,21 @@ import org.dplay.server.domain.track.entity.Track;
 import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.domain.user.repository.UserRepository;
-import org.dplay.server.global.exception.DPlayException;
-import org.dplay.server.global.response.ResponseError;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
-import java.util.Base64;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -114,13 +112,12 @@ class PostFeedServiceImplTest {
         assertThat(result.nextCursor()).isNull();
         assertThat(result.items()).hasSize(1);
         assertThat(result.items().get(0).isEditorPick()).isTrue();
-
         verify(postQueryService, never()).findFeedPosts(anyLong(), any(), any(), anyInt(), anyList());
     }
 
     @Test
-    @DisplayName("사용자가 게시글을 작성한 경우 커서 기반 페이징으로 추천글을 조회한다")
-    void getPastRecommendationFeed_unlockedUser_returnsPagedPosts() {
+    @DisplayName("사용자가 게시글을 작성한 경우 에디터픽과 다른 게시글을 모두 반환한다")
+    void getPastRecommendationFeed_unlockedUser_returnsCombinedPosts() {
         // Given
         Post editorPost1 = createPost(1L, 100, "editor pick 1");
         Post editorPost2 = createPost(2L, 90, "editor pick 2");
@@ -151,17 +148,12 @@ class PostFeedServiceImplTest {
                 .thenReturn(List.of(editorPick1, editorPick2, editorPick3));
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(true);
         when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(5L);
-        when(postQueryService.findFeedPosts(
-                eq(QUESTION_ID),
-                isNull(),
-                isNull(),
-                eq(3),
-                ArgumentMatchers.<List<Long>>any()
-        )).thenReturn(new ArrayListBuilder<Post>()
-                .add(feedPost1)
-                .add(feedPost2)
-                .add(feedPost3)
-                .build());
+        when(postQueryService.findFeedPosts(eq(QUESTION_ID), isNull(), isNull(), eq(3), anyList()))
+                .thenReturn(new ArrayListBuilder<Post>()
+                        .add(feedPost1)
+                        .add(feedPost2)
+                        .add(feedPost3)
+                        .build());
 
         when(postLikeService.findLikedPostIds(eq(user), anyList()))
                 .thenReturn(List.of(feedPost1.getPostId()));
@@ -186,79 +178,156 @@ class PostFeedServiceImplTest {
     }
 
     @Test
-    @DisplayName("다음 페이지 조회 시 에디터픽은 포함되지 않는다")
-    void getPastRecommendationFeed_nextPage_excludesEditorPicks() {
+    @DisplayName("오늘 추천글 조회에서 게시글을 작성했다면 에디터픽1-인기-최신-나머지 랜덤 순으로 반환한다")
+    void getTodayRecommendationFeed_hasPosted_returnsEditorPopularNewestAndRandom() {
         // Given
-        Post editorPost1 = createPost(1L, 100, "editor pick 1");
-        Post editorPost2 = createPost(2L, 90, "editor pick 2");
-        Post editorPost3 = createPost(3L, 80, "editor pick 3");
-        QuestionEditorPick editorPick1 = QuestionEditorPick.builder()
+        LocalDate today = QUESTION_DATE;
+
+        Post editorPick1 = createPost(1L, 10, "editor pick 1", QUESTION_DATE.atStartOfDay().plusHours(8));
+        Post editorPick2 = createPost(2L, 40, "editor pick 2", QUESTION_DATE.atStartOfDay().plusHours(9));
+        Post editorPick3 = createPost(3L, 30, "editor pick 3", QUESTION_DATE.atStartOfDay().plusHours(10));
+
+        QuestionEditorPick pick1 = QuestionEditorPick.builder().question(question).post(editorPick1).position(1).build();
+        QuestionEditorPick pick2 = QuestionEditorPick.builder().question(question).post(editorPick2).position(2).build();
+        QuestionEditorPick pick3 = QuestionEditorPick.builder().question(question).post(editorPick3).position(3).build();
+
+        Post userPopular = createPost(10L, 80, "user popular", QUESTION_DATE.atStartOfDay().plusHours(12));
+        Post userNewest = createPost(11L, 20, "user newest", QUESTION_DATE.atStartOfDay().plusHours(23));
+        Post userAnother = createPost(12L, 15, "user another", QUESTION_DATE.atStartOfDay().plusHours(15));
+
+        when(questionService.getQuestionByDate(today)).thenReturn(question);
+        when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(true);
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID))
+                .thenReturn(List.of(pick1, pick2, pick3));
+        when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(6L);
+        when(postQueryService.findAllFeedPosts(eq(QUESTION_ID), anyList()))
+                .thenReturn(List.of(userPopular, userNewest, userAnother));
+        when(postLikeService.findLikedPostIds(eq(user), anyList())).thenReturn(List.of(userPopular.getPostId()));
+        when(postSaveService.findScrappedPostIds(eq(user), anyList())).thenReturn(List.of(userNewest.getPostId()));
+
+        // When
+        PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(USER_ID, today);
+
+        // Then
+        assertThat(result.hasPosted()).isTrue();
+        assertThat(result.locked()).isFalse();
+        List<Long> postIds = result.items().stream()
+                .map(item -> item.post().getPostId())
+                .toList();
+
+        assertThat(postIds.get(0)).isEqualTo(editorPick1.getPostId());
+
+        PostFeedItemDto popularItem = result.items().stream()
+                .filter(item -> item.post().getPostId().equals(userPopular.getPostId()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(popularItem.isPopular()).isTrue();
+
+        PostFeedItemDto newestItem = result.items().stream()
+                .filter(item -> item.post().getPostId().equals(userNewest.getPostId()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(newestItem.isNew()).isTrue();
+
+        Set<Long> expectedIds = Set.of(
+                editorPick1.getPostId(),
+                editorPick2.getPostId(),
+                editorPick3.getPostId(),
+                userPopular.getPostId(),
+                userNewest.getPostId(),
+                userAnother.getPostId()
+        );
+        assertThat(postIds).containsExactlyInAnyOrderElementsOf(expectedIds);
+
+        verify(postQueryService).findAllFeedPosts(eq(QUESTION_ID), anyList());
+        verify(postQueryService, never()).findFeedPosts(anyLong(), any(), any(), anyInt(), anyList());
+        verify(postQueryService, never()).findLatestPosts(anyLong(), anyInt(), anyList());
+    }
+
+    @Test
+    @DisplayName("오늘 추천글 조회에서 게시글을 작성하지 않았다면 에디터픽만 보여준다")
+    void getTodayRecommendationFeed_lockedUser_returnsOnlyEditorPicks() {
+        // Given
+        LocalDate today = QUESTION_DATE;
+        Post editorPick1 = createPost(1L, 15, "editor pick 1", QUESTION_DATE.atStartOfDay().plusHours(8));
+        Post editorPick2 = createPost(2L, 12, "editor pick 2", QUESTION_DATE.atStartOfDay().plusHours(9));
+        Post editorPick3 = createPost(3L, 8, "editor pick 3", QUESTION_DATE.atStartOfDay().plusHours(10));
+
+        QuestionEditorPick pick1 = QuestionEditorPick.builder()
                 .question(question)
-                .post(editorPost1)
+                .post(editorPick1)
                 .position(1)
                 .build();
-        QuestionEditorPick editorPick2 = QuestionEditorPick.builder()
+        QuestionEditorPick pick2 = QuestionEditorPick.builder()
                 .question(question)
-                .post(editorPost2)
+                .post(editorPick2)
                 .position(2)
                 .build();
-        QuestionEditorPick editorPick3 = QuestionEditorPick.builder()
+        QuestionEditorPick pick3 = QuestionEditorPick.builder()
                 .question(question)
-                .post(editorPost3)
+                .post(editorPick3)
                 .position(3)
                 .build();
 
-        Post nextPost1 = createPost(20L, 25, "next page 1");
-        Post nextPost2 = createPost(19L, 25, "next page 2");
-
+        when(questionService.getQuestionByDate(today)).thenReturn(question);
+        when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(false);
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(questionService.getQuestionById(QUESTION_ID)).thenReturn(question);
-        when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID))
-                .thenReturn(List.of(editorPick1, editorPick2, editorPick3));
-        when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(true);
+        when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID)).thenReturn(List.of(pick1, pick2, pick3));
         when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(10L);
-
-        String cursor = Base64.getEncoder().encodeToString("25:18".getBytes());
-        when(postQueryService.findFeedPosts(
-                eq(QUESTION_ID),
-                eq(25L),
-                eq(18L),
-                eq(7),
-                ArgumentMatchers.<List<Long>>any()
-        )).thenReturn(List.of(nextPost1, nextPost2));
-
         when(postLikeService.findLikedPostIds(eq(user), anyList())).thenReturn(List.of());
         when(postSaveService.findScrappedPostIds(eq(user), anyList())).thenReturn(List.of());
 
         // When
-        PostFeedResultDto result = postFeedService.getPastRecommendationFeed(USER_ID, QUESTION_ID, cursor, 6);
+        PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(USER_ID, today);
 
         // Then
-        assertThat(result.locked()).isFalse();
-        assertThat(result.items()).hasSize(2);
-        assertThat(result.items().stream().allMatch(item -> !item.isEditorPick())).isTrue();
-        verify(postQueryService).findFeedPosts(eq(QUESTION_ID), eq(25L), eq(18L), eq(7), anyList());
+        assertThat(result.hasPosted()).isFalse();
+        assertThat(result.locked()).isTrue();
+        assertThat(result.items()).hasSize(3);
+        assertThat(result.items().stream().allMatch(PostFeedItemDto::isEditorPick)).isTrue();
+        assertThat(result.items().stream().map(item -> item.post().getPostId()))
+                .containsExactly(editorPick1.getPostId(), editorPick2.getPostId(), editorPick3.getPostId());
+
+        verify(postQueryService, never()).findFeedPosts(anyLong(), any(), any(), anyInt(), anyList());
+        verify(postQueryService, never()).findLatestPosts(anyLong(), anyInt(), anyList());
     }
 
     @Test
-    @DisplayName("잘못된 커서를 전달하면 INVALID_REQUEST_PARAMETER 예외를 던진다")
-    void getPastRecommendationFeed_invalidCursor_throwsException() {
+    @DisplayName("오늘 추천글 조회에서 에디터픽이 하나뿐이라면 해당 곡만 보여준다")
+    void getTodayRecommendationFeed_singleEditorPick_returnsSingleItem() {
         // Given
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(questionService.getQuestionById(QUESTION_ID)).thenReturn(question);
-        when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID))
-                .thenReturn(List.of());
-        when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(true);
-        when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(0L);
+        LocalDate today = QUESTION_DATE;
+        Post editorPick1 = createPost(1L, 10, "editor pick 1", QUESTION_DATE.atStartOfDay().plusHours(8));
+        QuestionEditorPick pick1 = QuestionEditorPick.builder().question(question).post(editorPick1).position(1).build();
 
-        // When & Then
-        assertThatThrownBy(() -> postFeedService.getPastRecommendationFeed(USER_ID, QUESTION_ID, "invalid_cursor", 20))
-                .isInstanceOf(DPlayException.class)
-                .extracting("responseError")
-                .isEqualTo(ResponseError.INVALID_REQUEST_PARAMETER);
+        when(questionService.getQuestionByDate(today)).thenReturn(question);
+        when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(false);
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID)).thenReturn(List.of(pick1));
+        when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(0L);
+        when(postLikeService.findLikedPostIds(eq(user), anyList())).thenReturn(List.of());
+        when(postSaveService.findScrappedPostIds(eq(user), anyList())).thenReturn(List.of());
+
+        // When
+        PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(USER_ID, today);
+
+        // Then
+        assertThat(result.hasPosted()).isFalse();
+        assertThat(result.locked()).isTrue();
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().get(0).post().getPostId()).isEqualTo(editorPick1.getPostId());
+        assertThat(result.items().get(0).isEditorPick()).isTrue();
+
+        verify(postQueryService, never()).findFeedPosts(anyLong(), any(), any(), anyInt(), anyList());
+        verify(postQueryService, never()).findLatestPosts(anyLong(), anyInt(), anyList());
     }
 
     private Post createPost(Long postId, int likeCount, String content) {
+        return createPost(postId, likeCount, content, QUESTION_DATE.atStartOfDay().plusHours(1));
+    }
+
+    private Post createPost(Long postId, int likeCount, String content, LocalDateTime createdAt) {
         Track track = Track.builder()
                 .trackId("apple:" + postId)
                 .songTitle("Song " + postId)
@@ -275,7 +344,7 @@ class PostFeedServiceImplTest {
                 .saveCount(0)
                 .build();
         ReflectionTestUtils.setField(post, "postId", postId);
-        ReflectionTestUtils.setField(post, "createdAt", QUESTION_DATE.atStartOfDay().plusHours(1));
+        ReflectionTestUtils.setField(post, "createdAt", createdAt);
 
         return post;
     }
