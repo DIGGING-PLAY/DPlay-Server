@@ -14,11 +14,11 @@ import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.UserRetriever;
 import org.dplay.server.domain.user.UserSaver;
 import org.dplay.server.domain.user.entity.User;
+import org.dplay.server.domain.user.repository.UserRepository;
 import org.dplay.server.global.auth.jwt.JwtTokenProvider;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.regex.Pattern;
 
@@ -32,6 +32,7 @@ public class AuthService {
     private final UserSaver userSaver;
     private final TokenSaver tokenSaver;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
 
     @Transactional
     public JwtTokenResponse login(final String providerToken, final LoginRequest loginRequest) {
@@ -54,7 +55,7 @@ public class AuthService {
     }
 
     @Transactional
-    public JwtTokenResponse signup(final String providerToken, final SignupRequest signupRequest, final MultipartFile profileImg) {
+    public JwtTokenResponse signup(final String providerToken, final SignupRequest signupRequest, final String profileImg) {
         SocialUserDto socialUserDto = getSocialInfo(providerToken, signupRequest.platform());
         validateNickname(signupRequest.nickname());
 
@@ -62,7 +63,7 @@ public class AuthService {
                 .platformId(socialUserDto.platformId())
                 .platform(signupRequest.platform())
                 .nickname(signupRequest.nickname())
-                .profileImg(profileImg);
+                .profileImg(profileImg).build();
         userSaver.save(user);
 
         JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
