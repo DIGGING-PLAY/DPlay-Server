@@ -85,7 +85,10 @@ public class AuthService {
     }
 
     private void validateNickname(final String nickname) {
-        if (nickname.length() < 2 || nickname.length() > 10) {
+        if (userRepository.existsByNickname(nickname)) {
+            throw new DPlayException(ResponseError.RESOURCE_ALREADY_EXISTS);
+        }
+        else if (nickname.length() < 2 || nickname.length() > 10) {
             throw new DPlayException(ResponseError.INVALID_INPUT_LENGTH);
         } else if (!Pattern.compile("^[가-힣a-zA-Z0-9]+$").matcher(nickname).matches()) {
             throw new DPlayException(ResponseError.INVALID_INPUT_NICKNAME);
