@@ -56,6 +56,10 @@ dependencies {
 
     // Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // AWS sdk
+    implementation 'com.amazonaws:aws-java-sdk-s3:1.12.767'
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter:3.1.1'
 }
 
 dependencyManagement {
