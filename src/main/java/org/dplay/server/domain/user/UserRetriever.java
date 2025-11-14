@@ -21,4 +21,9 @@ public class UserRetriever {
         return userRepository.findByPlatformIdAndPlatform(providerId, platform)
                 .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
     }
+
+    public User findByRefreshToken(final String refreshToken) {
+        return userRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(() -> new DPlayException(ResponseError.INVALID_REFRESH_TOKEN));
+    }
 }
