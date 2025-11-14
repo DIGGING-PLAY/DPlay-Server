@@ -1,13 +1,13 @@
 package org.dplay.server.domain.auth.service;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.dplay.server.controller.auth.dto.JwtTokenResponse;
 import org.dplay.server.controller.auth.dto.LoginRequest;
 import org.dplay.server.controller.auth.dto.SignupRequest;
-import org.dplay.server.domain.auth.TokenSaver;
 import org.dplay.server.domain.auth.dto.SocialUserDto;
-import org.dplay.server.domain.auth.entity.Token;
 import org.dplay.server.domain.auth.openfeign.apple.service.AppleService;
 import org.dplay.server.domain.auth.openfeign.kakao.service.KakaoService;
 import org.dplay.server.domain.user.Platform;
@@ -15,6 +15,7 @@ import org.dplay.server.domain.user.UserRetriever;
 import org.dplay.server.domain.user.UserSaver;
 import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.domain.user.repository.UserRepository;
+import org.dplay.server.global.auth.constant.Constant;
 import org.dplay.server.global.auth.jwt.JwtTokenProvider;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
@@ -30,7 +31,6 @@ public class AuthService {
     private final AppleService appleService;
     private final UserRetriever userRetriever;
     private final UserSaver userSaver;
-    private final TokenSaver tokenSaver;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
 
@@ -42,12 +42,7 @@ public class AuthService {
         if (isRegistered) {
             User user = userRetriever.findByProviderIdAndProvider(socialUserDto.platformId(), loginRequest.platform());
             JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
-            tokenSaver.save(
-                    Token.builder()
-                            .id(user.getUserId())
-                            .refreshToken(tokens.refreshToken())
-                            .build()
-            );
+            user.updateRefreshToken(tokens.refreshToken());
             return tokens;
         } else {
             throw new DPlayException(ResponseError.USER_NOT_FOUND);
@@ -67,11 +62,30 @@ public class AuthService {
         userSaver.save(user);
 
         JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
-        tokenSaver.save(Token.builder()
-                .id(user.getUserId())
-                .refreshToken(tokens.refreshToken())
-                .build());
+        user.updateRefreshToken(tokens.refreshToken());
 
+        return tokens;
+    }
+
+    @Transactional
+    public JwtTokenResponse reissueToken(final String refreshToken) {
+        Long userId;
+
+        try {
+            userId = jwtTokenProvider.getUserIdFromJwt(getToken(refreshToken));
+        } catch (ExpiredJwtException e) {
+            throw new DPlayException(ResponseError.EXPIRED_REFRESH_TOKEN);
+        } catch (JwtException e) {
+            throw new DPlayException(ResponseError.INVALID_REFRESH_TOKEN);
+        }
+
+        User user = userRetriever.findByRefreshToken(getToken(refreshToken));
+        if (!userId.equals(user.getUserId())) {
+            throw new DPlayException(ResponseError.INVALID_REFRESH_TOKEN);
+        }
+
+        JwtTokenResponse tokens = jwtTokenProvider.issueTokens(userId);
+        user.updateRefreshToken(tokens.refreshToken());
         return tokens;
     }
 
@@ -88,11 +102,18 @@ public class AuthService {
     private void validateNickname(final String nickname) {
         if (userRepository.existsByNickname(nickname)) {
             throw new DPlayException(ResponseError.RESOURCE_ALREADY_EXISTS);
-        }
-        else if (nickname.length() < 2 || nickname.length() > 10) {
+        } else if (nickname.length() < 2 || nickname.length() > 10) {
             throw new DPlayException(ResponseError.INVALID_INPUT_LENGTH);
         } else if (!Pattern.compile("^[가-힣a-zA-Z0-9]+$").matcher(nickname).matches()) {
             throw new DPlayException(ResponseError.INVALID_INPUT_NICKNAME);
+        }
+    }
+
+    private String getToken(String token) {
+        if (token.startsWith(Constant.BEARER_TOKEN_PREFIX)) {
+            return token.substring(Constant.BEARER_TOKEN_PREFIX.length());
+        } else {
+            return token;
         }
     }
 }
