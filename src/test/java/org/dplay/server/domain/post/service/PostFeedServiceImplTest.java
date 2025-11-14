@@ -72,7 +72,6 @@ class PostFeedServiceImplTest {
                 .platform(Platform.KAKAO)
                 .platformId("platform-1")
                 .nickname("테스트유저")
-                .email("test@example.com")
                 .build();
         ReflectionTestUtils.setField(user, "userId", USER_ID);
 

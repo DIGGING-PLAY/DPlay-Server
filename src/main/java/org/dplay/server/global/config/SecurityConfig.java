@@ -27,6 +27,7 @@ public class SecurityConfig {
             "/health/success/ok",
             "/health/success/created",
             "/v1/auth/login",
+            "/v1/auth/signup"
     };
 
     @Bean
