@@ -18,6 +18,8 @@ public enum ResponseError {
     INVALID_ACCESS_TOKEN(4010, "액세스 토큰의 값이 올바르지 않습니다."),
     EXPIRED_ACCESS_TOKEN(4011, "액세스 토큰이 만료되었습니다. 재발급 받아주세요."),
     INVALID_TOKEN(4012, "토큰 값이 올바르지 않습니다."),
+    INVALID_REFRESH_TOKEN(4014, "리프레시 토큰의 값이 올바르지 않습니다."),
+    EXPIRED_REFRESH_TOKEN(4015, "리프레시 토큰이 만료되었습니다. 재발급 받아주세요."),
 
     // Forbidden (403)
     FORBIDDEN_RESOURCE(4030, "리소스 접근 권한이 없습니다."),
