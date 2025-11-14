@@ -3,7 +3,6 @@ package org.dplay.server.controller.auth;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.dplay.server.controller.auth.dto.JwtTokenResponse;
 import org.dplay.server.controller.auth.dto.LoginRequest;
 import org.dplay.server.controller.auth.dto.SignupRequest;
@@ -53,7 +52,6 @@ public class AuthController {
                 signupRequest,
                 profileImgUrl
         );
-
 
         return ResponseBuilder.created(jwtTokenResponse);
     }

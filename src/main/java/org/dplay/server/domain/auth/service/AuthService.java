@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.regex.Pattern;
 
+import static org.dplay.server.global.auth.constant.Constant.BEARER_TOKEN_PREFIX;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -72,6 +74,8 @@ public class AuthService {
                 .refreshToken(tokens.refreshToken())
                 .build());
 
+        user.updateRefreshToken(tokens.refreshToken());
+
         return tokens;
     }
 
@@ -85,14 +89,17 @@ public class AuthService {
         }
     }
 
-    private void validateNickname(final String nickname) {
+    public void validateNickname(final String nickname) {
         if (userRepository.existsByNickname(nickname)) {
             throw new DPlayException(ResponseError.RESOURCE_ALREADY_EXISTS);
-        }
-        else if (nickname.length() < 2 || nickname.length() > 10) {
+        } else if (nickname.length() < 2 || nickname.length() > 10) {
             throw new DPlayException(ResponseError.INVALID_INPUT_LENGTH);
         } else if (!Pattern.compile("^[가-힣a-zA-Z0-9]+$").matcher(nickname).matches()) {
             throw new DPlayException(ResponseError.INVALID_INPUT_NICKNAME);
         }
+    }
+
+    public Long getUserIdFromToken(final String accessToken) {
+        return jwtTokenProvider.getUserIdFromJwt(accessToken.replace(BEARER_TOKEN_PREFIX, ""));
     }
 }
