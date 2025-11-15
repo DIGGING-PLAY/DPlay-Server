@@ -59,6 +59,10 @@ public class User extends BaseTimeEntity {
         this.pushOptIn = pushOptIn;
     }
 
+    public void updatePushOptIn(boolean pushOptIn) {
+        this.pushOptIn = pushOptIn;
+    }
+
     public void updateRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
     }

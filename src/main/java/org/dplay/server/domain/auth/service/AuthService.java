@@ -15,6 +15,7 @@ import org.dplay.server.domain.user.UserRetriever;
 import org.dplay.server.domain.user.UserSaver;
 import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.domain.user.repository.UserRepository;
+import org.dplay.server.global.auth.constant.Constant;
 import org.dplay.server.global.auth.jwt.JwtTokenProvider;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
@@ -88,11 +89,22 @@ public class AuthService {
     private void validateNickname(final String nickname) {
         if (userRepository.existsByNickname(nickname)) {
             throw new DPlayException(ResponseError.RESOURCE_ALREADY_EXISTS);
-        }
-        else if (nickname.length() < 2 || nickname.length() > 10) {
+        } else if (nickname.length() < 2 || nickname.length() > 10) {
             throw new DPlayException(ResponseError.INVALID_INPUT_LENGTH);
         } else if (!Pattern.compile("^[가-힣a-zA-Z0-9]+$").matcher(nickname).matches()) {
             throw new DPlayException(ResponseError.INVALID_INPUT_NICKNAME);
+        }
+    }
+
+    public Long getUserIdFromToken(final String accessToken) {
+        return jwtTokenProvider.getUserIdFromJwt(getToken(accessToken));
+    }
+
+    private String getToken(String token) {
+        if (token.startsWith(Constant.BEARER_TOKEN_PREFIX)) {
+            return token.substring(Constant.BEARER_TOKEN_PREFIX.length());
+        } else {
+            return token;
         }
     }
 }
