@@ -73,8 +73,15 @@ public record TodayRecommendationFeedResponse(
         }
 
         boolean isEditorPick = item.isEditorPick();
-        boolean isPopular = popularItem != null && samePost(popularItem, item);
-        boolean isNew = newestItem != null && samePost(newestItem, item);
+        boolean isPopular = item.isPopular();
+        if (!isPopular && popularItem != null && samePost(popularItem, item)) {
+            isPopular = true;
+        }
+
+        boolean isNew = item.isNew();
+        if (!isNew && newestItem != null && samePost(newestItem, item)) {
+            isNew = true;
+        }
 
         return new TodayRecommendationFeedBadges(isEditorPick, isPopular, isNew);
     }
