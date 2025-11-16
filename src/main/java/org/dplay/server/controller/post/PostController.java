@@ -5,8 +5,13 @@ import lombok.RequiredArgsConstructor;
 import org.dplay.server.controller.post.dto.PostLikeResponse;
 import org.dplay.server.controller.post.dto.PostRequest;
 import org.dplay.server.controller.post.dto.PostResponse;
+import org.dplay.server.controller.question.dto.PastRecommendationFeedRequest;
+import org.dplay.server.controller.question.dto.PastRecommendationFeedResponse;
+import org.dplay.server.controller.question.dto.TodayRecommendationFeedResponse;
 import org.dplay.server.domain.post.dto.PostDto;
 import org.dplay.server.domain.post.dto.PostLikeDto;
+import org.dplay.server.domain.post.dto.PostFeedResultDto;
+import org.dplay.server.domain.post.service.PostFeedService;
 import org.dplay.server.domain.post.service.PostLikeService;
 import org.dplay.server.domain.post.service.PostSaveService;
 import org.dplay.server.domain.post.service.PostService;
@@ -23,6 +28,7 @@ public class PostController {
     private final PostService postService;
     private final PostLikeService postLikeService;
     private final PostSaveService postSaveService;
+    private final PostFeedService postFeedService;
 
     /**
      * [ 추천글 등록 API ]
@@ -175,5 +181,50 @@ public class PostController {
 
         postSaveService.removeScrap(userId, postId);
         return ResponseBuilder.ok(null);
+    }
+
+    /**
+     * [ 과거 추천글 조회 API ]
+     *
+     * @param accessToken 인증 토큰 (TODO: 인증 연동 시 userId 추출)
+     * @param questionId  질문 ID
+     * @param request     커서, 페이지 사이즈 정보
+     * @return PastRecommendationFeedResponse
+     */
+    @GetMapping("/{questionId}")
+    public ResponseEntity<ApiResponse<PastRecommendationFeedResponse>> getPastRecommendationPosts(
+            @RequestHeader("Authorization") final String accessToken,
+            @PathVariable("questionId") final Long questionId,
+            @Valid @ModelAttribute final PastRecommendationFeedRequest request
+    ) {
+        Long userId = 2L; // TODO: 추후 인증 구현 시 accessToken 에서 userId 추출
+
+        PostFeedResultDto result = postFeedService.getPastRecommendationFeed(
+                userId,
+                questionId,
+                request.cursor(),
+                request.limit()
+        );
+
+        PastRecommendationFeedResponse response = PastRecommendationFeedResponse.from(result);
+        return ResponseBuilder.ok(response);
+    }
+
+    /**
+     * [ 오늘 추천글 조회 API ]
+     *
+     * @param accessToken 인증 토큰 (TODO: 인증 연동 시 userId 추출)
+     * @return TodayRecommendationFeedResponse
+     */
+    @GetMapping("/today")
+    public ResponseEntity<ApiResponse<TodayRecommendationFeedResponse>> getTodayRecommendationPosts(
+            @RequestHeader("Authorization") final String accessToken
+    ) {
+        Long userId = 2L; // TODO: 추후 인증 구현 시 accessToken 에서 userId 추출
+
+        PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(userId);
+
+        TodayRecommendationFeedResponse response = TodayRecommendationFeedResponse.from(result);
+        return ResponseBuilder.ok(response);
     }
 }
