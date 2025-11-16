@@ -23,8 +23,11 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,6 +41,7 @@ public class PostFeedServiceImpl implements PostFeedService {
     private static final int MAX_VISIBLE_LIMIT = 50;
     private static final int POPULAR_LIKE_THRESHOLD = 10;
 
+    private final Clock clock;
     private final QuestionService questionService;
     private final QuestionEditorPickService questionEditorPickService;
     private final PostQueryService postQueryService;
@@ -117,6 +121,71 @@ public class PostFeedServiceImpl implements PostFeedService {
         List<PostFeedItemDto> items = buildFeedItems(
                 responsePosts,
                 editorPickPostIds,
+                Collections.emptySet(),
+                Collections.emptySet(),
+                likedPostIds,
+                savedPostIds,
+                question
+        );
+
+        int effectiveVisibleLimit = locked ? LOCKED_VISIBLE_LIMIT : visibleLimit;
+
+        return new PostFeedResultDto(
+                question.getQuestionId(),
+                question.getDisplayDate(),
+                question.getTitle(),
+                hasPosted,
+                locked,
+                effectiveVisibleLimit,
+                totalCount,
+                nextCursor,
+                items
+        );
+    }
+
+    @Override
+    public PostFeedResultDto getTodayRecommendationFeed(Long userId) {
+        LocalDate today = getTodayDate();
+        Question question = questionService.getQuestionByDate(today);
+        Long questionId = question.getQuestionId();
+
+        // TODO : UserService 로 고치기
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
+
+        List<QuestionEditorPick> editorPicks = questionEditorPickService.getOrderedEditorPicks(questionId);
+        long totalCount = postQueryService.countByQuestion(questionId);
+
+        boolean hasPosted = postQueryService.existsByQuestionAndUser(questionId, userId);
+        if (hasPosted) {
+            return buildUnlockedTodayFeed(user, question, editorPicks, totalCount);
+        }
+
+        return buildLockedTodayFeed(user, question, editorPicks, totalCount);
+    }
+
+    private PostFeedResultDto buildLockedTodayFeed(User user,
+                                                   Question question,
+                                                   List<QuestionEditorPick> editorPicks,
+                                                   long totalCount) {
+        List<Post> editorPickPosts = editorPicks.stream()
+                .map(QuestionEditorPick::getPost)
+                .filter(post -> post != null && post.getPostId() != null)
+                .limit(LOCKED_VISIBLE_LIMIT)
+                .toList();
+
+        Set<Long> editorPickPostIds = editorPickPosts.stream()
+                .map(Post::getPostId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        Set<Long> likedPostIds = fetchRelationPostIds(postLikeService::findLikedPostIds, editorPickPosts, user);
+        Set<Long> savedPostIds = fetchRelationPostIds(postSaveService::findScrappedPostIds, editorPickPosts, user);
+
+        List<PostFeedItemDto> items = buildFeedItems(
+                editorPickPosts,
+                editorPickPostIds,
+                Collections.emptySet(),
+                Collections.emptySet(),
                 likedPostIds,
                 savedPostIds,
                 question
@@ -126,13 +195,223 @@ public class PostFeedServiceImpl implements PostFeedService {
                 question.getQuestionId(),
                 question.getDisplayDate(),
                 question.getTitle(),
-                hasPosted,
-                locked,
-                visibleLimit,
+                false,
+                true,
+                LOCKED_VISIBLE_LIMIT,
                 totalCount,
-                nextCursor,
+                null,
                 items
         );
+    }
+
+    private PostFeedResultDto buildUnlockedTodayFeed(User user,
+                                                     Question question,
+                                                     List<QuestionEditorPick> editorPicks,
+                                                     long totalCount) {
+        Long questionId = question.getQuestionId();
+
+        List<Post> editorPickPosts = editorPicks.stream()
+                .map(QuestionEditorPick::getPost)
+                .filter(post -> post != null && post.getPostId() != null)
+                .toList();
+
+        Set<Long> editorPickPostIds = editorPickPosts.stream()
+                .map(Post::getPostId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        List<Post> nonEditorPosts = postQueryService.findAllFeedPosts(
+                questionId,
+                new ArrayList<>(editorPickPostIds)
+        );
+
+        List<Post> resultPosts = new ArrayList<>();
+        Set<Long> forcedPopularPostIds = new HashSet<>();
+        Set<Long> forcedNewPostIds = new HashSet<>();
+
+        Set<Long> usedEditorPickIds = new LinkedHashSet<>();
+        Post primaryEditorPick = selectNextEditorPick(editorPickPosts, usedEditorPickIds);
+        if (primaryEditorPick != null) {
+            resultPosts.add(primaryEditorPick);
+        }
+
+        List<Post> candidatePosts = new ArrayList<>();
+        editorPickPosts.stream()
+                .filter(post -> post.getPostId() != null && !usedEditorPickIds.contains(post.getPostId()))
+                .forEach(candidatePosts::add);
+        candidatePosts.addAll(nonEditorPosts);
+
+        Post popularPost = candidatePosts.stream()
+                .max(Comparator
+                        .comparingInt(Post::getLikeCount)
+                        .thenComparingLong(Post::getPostId))
+                .orElse(null);
+
+        if (popularPost != null) {
+            forcedPopularPostIds.add(popularPost.getPostId());
+            addIfAbsent(resultPosts, popularPost);
+        }
+
+        Post newestPost = candidatePosts.stream()
+                .max(Comparator
+                        .comparing(Post::getCreatedAt, Comparator.nullsFirst(LocalDateTime::compareTo))
+                        .thenComparingLong(Post::getPostId))
+                .orElse(null);
+
+        if (newestPost != null) {
+            forcedNewPostIds.add(newestPost.getPostId());
+            addIfAbsent(resultPosts, newestPost);
+        }
+
+        List<Post> remainingPosts = candidatePosts.stream()
+                .filter(post -> resultPosts.stream()
+                        .map(Post::getPostId)
+                        .noneMatch(id -> Objects.equals(id, post.getPostId())))
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        Collections.shuffle(remainingPosts, ThreadLocalRandom.current());
+        resultPosts.addAll(remainingPosts);
+
+        Set<Long> likedPostIds = fetchRelationPostIds(postLikeService::findLikedPostIds, resultPosts, user);
+        Set<Long> savedPostIds = fetchRelationPostIds(postSaveService::findScrappedPostIds, resultPosts, user);
+
+        List<PostFeedItemDto> items = buildFeedItems(
+                resultPosts,
+                editorPickPostIds,
+                forcedPopularPostIds,
+                forcedNewPostIds,
+                likedPostIds,
+                savedPostIds,
+                question
+        );
+
+        return new PostFeedResultDto(
+                questionId,
+                question.getDisplayDate(),
+                question.getTitle(),
+                true,
+                false,
+                resultPosts.size(),
+                totalCount,
+                null,
+                items
+        );
+    }
+
+    private void addIfAbsent(List<Post> posts, Post candidate) {
+        boolean exists = posts.stream()
+                .anyMatch(post -> Objects.equals(post.getPostId(), candidate.getPostId()));
+        if (!exists) {
+            posts.add(candidate);
+        }
+    }
+
+    private void fillWithRemainingEditorPicks(List<Post> editorPickPosts,
+                                              Set<Long> usedEditorPickIds,
+                                              List<Post> selectedPosts) {
+        while (selectedPosts.size() < LOCKED_VISIBLE_LIMIT) {
+            Post nextEditorPick = selectNextEditorPick(editorPickPosts, usedEditorPickIds);
+            if (nextEditorPick == null) {
+                break;
+            }
+            selectedPosts.add(nextEditorPick);
+        }
+    }
+
+    private Post selectNextEditorPick(List<Post> editorPickPosts,
+                                      Set<Long> usedEditorPickIds) {
+        for (Post editorPick : editorPickPosts) {
+            Long postId = editorPick.getPostId();
+            if (postId == null) {
+                continue;
+            }
+            if (usedEditorPickIds.add(postId)) {
+                return editorPick;
+            }
+        }
+        return null;
+    }
+
+    private List<Long> collectPostIds(List<Post> posts) {
+        return posts.stream()
+                .map(Post::getPostId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private Post selectPopularPost(Long questionId, List<Long> excludedPostIds) {
+        List<Post> candidates = postQueryService.findFeedPosts(
+                questionId,
+                null,
+                null,
+                1,
+                excludedPostIds
+        );
+
+        if (candidates.isEmpty()) {
+            return null;
+        }
+
+        return candidates.get(0);
+    }
+
+    private Post selectNewestPost(Long questionId, List<Long> excludedPostIds) {
+        List<Post> candidates = postQueryService.findLatestPosts(
+                questionId,
+                1,
+                excludedPostIds
+        );
+
+        if (candidates.isEmpty()) {
+            return null;
+        }
+
+        return candidates.get(0);
+    }
+
+    private Set<Long> fetchRelationPostIds(RelationFetcher fetcher,
+                                           List<Post> posts,
+                                           User user) {
+        if (CollectionUtils.isEmpty(posts)) {
+            return new HashSet<>();
+        }
+        List<Long> postIds = fetcher.fetch(user, posts);
+        if (postIds == null) {
+            return new HashSet<>();
+        }
+        return new HashSet<>(postIds);
+    }
+
+    private List<PostFeedItemDto> buildFeedItems(List<Post> posts,
+                                                 Set<Long> editorPickPostIds,
+                                                 Set<Long> forcedPopularPostIds,
+                                                 Set<Long> forcedNewPostIds,
+                                                 Set<Long> likedPostIds,
+                                                 Set<Long> savedPostIds,
+                                                 Question question) {
+        return posts.stream()
+                .map(post -> {
+                    boolean isEditorPick = editorPickPostIds.contains(post.getPostId());
+                    boolean isPopular = forcedPopularPostIds.contains(post.getPostId())
+                            || (!isEditorPick && post.getLikeCount() >= POPULAR_LIKE_THRESHOLD);
+                    boolean isNew = forcedNewPostIds.contains(post.getPostId())
+                            || isNewPost(post, question);
+                    boolean isLiked = likedPostIds.contains(post.getPostId());
+                    boolean isScrapped = savedPostIds.contains(post.getPostId());
+                    return new PostFeedItemDto(
+                            post,
+                            isEditorPick,
+                            isPopular,
+                            isNew,
+                            isLiked,
+                            isScrapped
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    private boolean isNewPost(Post post, Question question) {
+        LocalDateTime createdAt = post.getCreatedAt();
+        return createdAt != null && createdAt.toLocalDate().isEqual(question.getDisplayDate());
     }
 
     private int determineVisibleLimit(Integer requestedLimit, boolean locked) {
@@ -169,46 +448,8 @@ public class PostFeedServiceImpl implements PostFeedService {
         return Base64.getEncoder().encodeToString(rawCursor.getBytes(StandardCharsets.UTF_8));
     }
 
-    private Set<Long> fetchRelationPostIds(RelationFetcher fetcher,
-                                           List<Post> posts,
-                                           User user) {
-        if (CollectionUtils.isEmpty(posts)) {
-            return new HashSet<>();
-        }
-        List<Long> postIds = fetcher.fetch(user, posts);
-        if (postIds == null) {
-            return new HashSet<>();
-        }
-        return new HashSet<>(postIds);
-    }
-
-    private List<PostFeedItemDto> buildFeedItems(List<Post> posts,
-                                                 Set<Long> editorPickPostIds,
-                                                 Set<Long> likedPostIds,
-                                                 Set<Long> savedPostIds,
-                                                 Question question) {
-        return posts.stream()
-                .map(post -> {
-                    boolean isEditorPick = editorPickPostIds.contains(post.getPostId());
-                    boolean isPopular = !isEditorPick && post.getLikeCount() >= POPULAR_LIKE_THRESHOLD;
-                    boolean isNew = isNewPost(post, question);
-                    boolean isLiked = likedPostIds.contains(post.getPostId());
-                    boolean isScrapped = savedPostIds.contains(post.getPostId());
-                    return new PostFeedItemDto(
-                            post,
-                            isEditorPick,
-                            isPopular,
-                            isNew,
-                            isLiked,
-                            isScrapped
-                    );
-                })
-                .collect(Collectors.toList());
-    }
-
-    private boolean isNewPost(Post post, Question question) {
-        LocalDateTime createdAt = post.getCreatedAt();
-        return createdAt != null && createdAt.toLocalDate().isEqual(question.getDisplayDate());
+    private LocalDate getTodayDate() {
+        return LocalDate.now(clock);
     }
 
     private record Cursor(Long likeCount, Long postId) {

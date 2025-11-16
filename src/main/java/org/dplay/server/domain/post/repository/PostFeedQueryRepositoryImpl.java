@@ -54,4 +54,55 @@ public class PostFeedQueryRepositoryImpl implements PostFeedQueryRepository {
 
         return query.getResultList();
     }
+
+    @Override
+    public List<Post> findLatestPosts(
+            Long questionId,
+            int limit,
+            List<Long> excludePostIds
+    ) {
+        StringBuilder jpql = new StringBuilder("SELECT p FROM Post p ");
+        jpql.append("JOIN FETCH p.user u ");
+        jpql.append("JOIN FETCH p.track t ");
+        jpql.append("WHERE p.question.questionId = :questionId ");
+
+        if (!CollectionUtils.isEmpty(excludePostIds)) {
+            jpql.append("AND p.postId NOT IN :excludeIds ");
+        }
+
+        jpql.append("ORDER BY p.createdAt DESC, p.postId DESC");
+
+        TypedQuery<Post> query = entityManager.createQuery(jpql.toString(), Post.class)
+                .setParameter("questionId", questionId)
+                .setMaxResults(limit);
+
+        if (!CollectionUtils.isEmpty(excludePostIds)) {
+            query.setParameter("excludeIds", excludePostIds);
+        }
+
+        return query.getResultList();
+    }
+
+    @Override
+    public List<Post> findAllFeedPosts(Long questionId, List<Long> excludePostIds) {
+        StringBuilder jpql = new StringBuilder("SELECT p FROM Post p ");
+        jpql.append("JOIN FETCH p.user u ");
+        jpql.append("JOIN FETCH p.track t ");
+        jpql.append("WHERE p.question.questionId = :questionId ");
+
+        if (!CollectionUtils.isEmpty(excludePostIds)) {
+            jpql.append("AND p.postId NOT IN :excludeIds ");
+        }
+
+        jpql.append("ORDER BY p.likeCount DESC, p.postId ASC");
+
+        TypedQuery<Post> query = entityManager.createQuery(jpql.toString(), Post.class)
+                .setParameter("questionId", questionId);
+
+        if (!CollectionUtils.isEmpty(excludePostIds)) {
+            query.setParameter("excludeIds", excludePostIds);
+        }
+
+        return query.getResultList();
+    }
 }

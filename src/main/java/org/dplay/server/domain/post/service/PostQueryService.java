@@ -17,4 +17,15 @@ public interface PostQueryService {
             int limit,
             List<Long> excludePostIds
     );
+
+    List<Post> findLatestPosts(
+            Long questionId,
+            int limit,
+            List<Long> excludePostIds
+    );
+
+    List<Post> findAllFeedPosts(
+            Long questionId,
+            List<Long> excludePostIds
+    );
 }

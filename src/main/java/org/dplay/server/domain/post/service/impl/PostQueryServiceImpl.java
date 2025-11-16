@@ -36,4 +36,18 @@ public class PostQueryServiceImpl implements PostQueryService {
     ) {
         return postRepository.findFeedPosts(questionId, cursorLikeCount, cursorPostId, limit, excludePostIds);
     }
+
+    @Override
+    public List<Post> findLatestPosts(
+            Long questionId,
+            int limit,
+            List<Long> excludePostIds
+    ) {
+        return postRepository.findLatestPosts(questionId, limit, excludePostIds);
+    }
+
+    @Override
+    public List<Post> findAllFeedPosts(Long questionId, List<Long> excludePostIds) {
+        return postRepository.findAllFeedPosts(questionId, excludePostIds);
+    }
 }
