@@ -2,9 +2,9 @@ package org.dplay.server.controller.question;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.dplay.server.controller.question.dto.*;
-import org.dplay.server.domain.post.dto.PostFeedResultDto;
-import org.dplay.server.domain.post.service.PostFeedService;
+import org.dplay.server.controller.question.dto.MonthlyQuestionsRequest;
+import org.dplay.server.controller.question.dto.MonthlyQuestionsResponse;
+import org.dplay.server.controller.question.dto.QuestionResponse;
 import org.dplay.server.domain.question.service.QuestionService;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ApiResponse;
@@ -12,17 +12,12 @@ import org.dplay.server.global.response.ResponseBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Clock;
-import java.time.LocalDate;
-
 @RestController
 @RequestMapping("/v1/questions")
 @RequiredArgsConstructor
 public class QuestionController {
 
     private final QuestionService questionService;
-    private final PostFeedService postFeedService;
-    private final Clock clock;
 
     /**
      * [ 오늘의 질문을 조회하는 API ]
@@ -63,53 +58,6 @@ public class QuestionController {
         MonthlyQuestionsResponse response = MonthlyQuestionsResponse.of(
                 questionService.getMonthlyQuestions(request.year(), request.month())
         );
-        return ResponseBuilder.ok(response);
-    }
-
-    /**
-     * [ 과거 추천글 조회 API ]
-     *
-     * @param accessToken 인증 토큰 (TODO: 인증 연동 시 userId 추출)
-     * @param questionId  질문 ID
-     * @param request     커서, 페이지 사이즈 정보
-     * @return PastRecommendationFeedResponse
-     */
-    @GetMapping("/{questionId}/posts")
-    public ResponseEntity<ApiResponse<PastRecommendationFeedResponse>> getPastRecommendationPosts(
-            @RequestHeader("Authorization") final String accessToken,
-            @PathVariable("questionId") final Long questionId,
-            @Valid @ModelAttribute final PastRecommendationFeedRequest request
-    ) {
-        Long userId = 2L; // TODO: 추후 인증 구현 시 accessToken 에서 userId 추출
-
-        PostFeedResultDto result = postFeedService.getPastRecommendationFeed(
-                userId,
-                questionId,
-                request.cursor(),
-                request.limit()
-        );
-
-        PastRecommendationFeedResponse response = PastRecommendationFeedResponse.from(result);
-        return ResponseBuilder.ok(response);
-    }
-
-    /**
-     * [ 오늘 추천글 조회 API ]
-     */
-    @GetMapping("/today/posts")
-    public ResponseEntity<ApiResponse<TodayRecommendationFeedResponse>> getTodayRecommendationPosts(
-            @RequestHeader("Authorization") final String accessToken
-    ) {
-        Long userId = 2L; // TODO: 추후 인증 구현 시 accessToken 에서 userId 추출
-
-        LocalDate today = LocalDate.now(clock);
-
-        PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(
-                userId,
-                today
-        );
-
-        TodayRecommendationFeedResponse response = TodayRecommendationFeedResponse.from(result);
         return ResponseBuilder.ok(response);
     }
 }
