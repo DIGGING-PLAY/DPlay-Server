@@ -2,8 +2,6 @@ package org.dplay.server.domain.post.service;
 
 import org.dplay.server.domain.post.dto.PostFeedResultDto;
 
-import java.time.LocalDate;
-
 public interface PostFeedService {
 
     PostFeedResultDto getPastRecommendationFeed(
@@ -13,8 +11,5 @@ public interface PostFeedService {
             Integer limit
     );
 
-    PostFeedResultDto getTodayRecommendationFeed(
-            Long userId,
-            LocalDate today
-    );
+    PostFeedResultDto getTodayRecommendationFeed(Long userId);
 }

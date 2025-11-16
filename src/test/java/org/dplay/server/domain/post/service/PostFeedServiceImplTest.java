@@ -20,8 +20,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -48,6 +50,7 @@ class PostFeedServiceImplTest {
 
     private PostFeedServiceImpl postFeedService;
 
+    private static final ZoneId ZONE = ZoneId.of("Asia/Seoul");
     private static final Long USER_ID = 100L;
     private static final Long QUESTION_ID = 200L;
     private static final LocalDate QUESTION_DATE = LocalDate.of(2025, 11, 5);
@@ -57,7 +60,9 @@ class PostFeedServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        Clock fixedClock = Clock.fixed(QUESTION_DATE.atStartOfDay(ZONE).toInstant(), ZONE);
         postFeedService = new PostFeedServiceImpl(
+                fixedClock,
                 questionService,
                 questionEditorPickService,
                 postQueryService,
@@ -181,8 +186,6 @@ class PostFeedServiceImplTest {
     @DisplayName("오늘 추천글 조회에서 게시글을 작성했다면 에디터픽1-인기-최신-나머지 랜덤 순으로 반환한다")
     void getTodayRecommendationFeed_hasPosted_returnsEditorPopularNewestAndRandom() {
         // Given
-        LocalDate today = QUESTION_DATE;
-
         Post editorPick1 = createPost(1L, 10, "editor pick 1", QUESTION_DATE.atStartOfDay().plusHours(8));
         Post editorPick2 = createPost(2L, 40, "editor pick 2", QUESTION_DATE.atStartOfDay().plusHours(9));
         Post editorPick3 = createPost(3L, 30, "editor pick 3", QUESTION_DATE.atStartOfDay().plusHours(10));
@@ -195,7 +198,7 @@ class PostFeedServiceImplTest {
         Post userNewest = createPost(11L, 20, "user newest", QUESTION_DATE.atStartOfDay().plusHours(23));
         Post userAnother = createPost(12L, 15, "user another", QUESTION_DATE.atStartOfDay().plusHours(15));
 
-        when(questionService.getQuestionByDate(today)).thenReturn(question);
+        when(questionService.getQuestionByDate(QUESTION_DATE)).thenReturn(question);
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(true);
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID))
@@ -207,7 +210,7 @@ class PostFeedServiceImplTest {
         when(postSaveService.findScrappedPostIds(eq(user), anyList())).thenReturn(List.of(userNewest.getPostId()));
 
         // When
-        PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(USER_ID, today);
+        PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(USER_ID);
 
         // Then
         assertThat(result.hasPosted()).isTrue();
@@ -249,7 +252,6 @@ class PostFeedServiceImplTest {
     @DisplayName("오늘 추천글 조회에서 게시글을 작성하지 않았다면 에디터픽만 보여준다")
     void getTodayRecommendationFeed_lockedUser_returnsOnlyEditorPicks() {
         // Given
-        LocalDate today = QUESTION_DATE;
         Post editorPick1 = createPost(1L, 15, "editor pick 1", QUESTION_DATE.atStartOfDay().plusHours(8));
         Post editorPick2 = createPost(2L, 12, "editor pick 2", QUESTION_DATE.atStartOfDay().plusHours(9));
         Post editorPick3 = createPost(3L, 8, "editor pick 3", QUESTION_DATE.atStartOfDay().plusHours(10));
@@ -270,7 +272,7 @@ class PostFeedServiceImplTest {
                 .position(3)
                 .build();
 
-        when(questionService.getQuestionByDate(today)).thenReturn(question);
+        when(questionService.getQuestionByDate(QUESTION_DATE)).thenReturn(question);
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(false);
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID)).thenReturn(List.of(pick1, pick2, pick3));
@@ -279,7 +281,7 @@ class PostFeedServiceImplTest {
         when(postSaveService.findScrappedPostIds(eq(user), anyList())).thenReturn(List.of());
 
         // When
-        PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(USER_ID, today);
+        PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(USER_ID);
 
         // Then
         assertThat(result.hasPosted()).isFalse();
@@ -297,11 +299,10 @@ class PostFeedServiceImplTest {
     @DisplayName("오늘 추천글 조회에서 에디터픽이 하나뿐이라면 해당 곡만 보여준다")
     void getTodayRecommendationFeed_singleEditorPick_returnsSingleItem() {
         // Given
-        LocalDate today = QUESTION_DATE;
         Post editorPick1 = createPost(1L, 10, "editor pick 1", QUESTION_DATE.atStartOfDay().plusHours(8));
         QuestionEditorPick pick1 = QuestionEditorPick.builder().question(question).post(editorPick1).position(1).build();
 
-        when(questionService.getQuestionByDate(today)).thenReturn(question);
+        when(questionService.getQuestionByDate(QUESTION_DATE)).thenReturn(question);
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(false);
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID)).thenReturn(List.of(pick1));
@@ -310,7 +311,7 @@ class PostFeedServiceImplTest {
         when(postSaveService.findScrappedPostIds(eq(user), anyList())).thenReturn(List.of());
 
         // When
-        PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(USER_ID, today);
+        PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(USER_ID);
 
         // Then
         assertThat(result.hasPosted()).isFalse();

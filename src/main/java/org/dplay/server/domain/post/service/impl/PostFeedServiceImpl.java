@@ -23,6 +23,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -40,6 +41,7 @@ public class PostFeedServiceImpl implements PostFeedService {
     private static final int MAX_VISIBLE_LIMIT = 50;
     private static final int POPULAR_LIKE_THRESHOLD = 10;
 
+    private final Clock clock;
     private final QuestionService questionService;
     private final QuestionEditorPickService questionEditorPickService;
     private final PostQueryService postQueryService;
@@ -142,10 +144,8 @@ public class PostFeedServiceImpl implements PostFeedService {
     }
 
     @Override
-    public PostFeedResultDto getTodayRecommendationFeed(
-            Long userId,
-            LocalDate today
-    ) {
+    public PostFeedResultDto getTodayRecommendationFeed(Long userId) {
+        LocalDate today = getTodayDate();
         Question question = questionService.getQuestionByDate(today);
         Long questionId = question.getQuestionId();
 
@@ -446,6 +446,10 @@ public class PostFeedServiceImpl implements PostFeedService {
     private String encodeCursor(long likeCount, long postId) {
         String rawCursor = likeCount + ":" + postId;
         return Base64.getEncoder().encodeToString(rawCursor.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private LocalDate getTodayDate() {
+        return LocalDate.now(clock);
     }
 
     private record Cursor(Long likeCount, Long postId) {
