@@ -2,6 +2,8 @@ package org.dplay.server.domain.track.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dplay.server.domain.music.openfeign.apple.service.AppleMusicService;
+import org.dplay.server.domain.track.dto.TrackSearchResultDto;
 import org.dplay.server.domain.track.entity.Track;
 import org.dplay.server.domain.track.repository.TrackRepository;
 import org.dplay.server.domain.track.service.TrackService;
@@ -11,6 +13,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Base64;
 import java.util.Optional;
 
 @Service
@@ -20,6 +23,10 @@ import java.util.Optional;
 public class TrackServiceImpl implements TrackService {
 
     private final TrackRepository trackRepository;
+    private final AppleMusicService appleMusicService;
+    private static final String DEFAULT_STOREFRONT = "kr";
+    private static final int DEFAULT_LIMIT = 20;
+    private static final int MAX_LIMIT = 50;
 
     @Override
     public Optional<Track> findTrackByTrackId(String trackId) {
@@ -101,5 +108,43 @@ public class TrackServiceImpl implements TrackService {
                 .build();
 
         return trackRepository.save(track);
+    }
+
+    @Override
+    public TrackSearchResultDto searchTracks(String query, Integer limit, String storefront, String cursor) {
+        // 파라미터 검증 및 기본값 설정
+        String finalStorefront = storefront != null && !storefront.isEmpty() ? storefront : DEFAULT_STOREFRONT;
+        int finalLimit = limit != null ? Math.min(Math.max(limit, 1), MAX_LIMIT) : DEFAULT_LIMIT;
+
+        // 커서에서 offset 추출
+        Integer offset = parseOffsetFromCursor(cursor);
+
+        // Apple Music API 호출
+        AppleMusicService.MusicSearchResult result = appleMusicService.searchMusic(
+                query,
+                finalLimit,
+                finalStorefront,
+                offset
+        );
+
+        return TrackSearchResultDto.of(
+                query,
+                finalStorefront,
+                finalLimit,
+                result.nextCursor(),
+                result.items()
+        );
+    }
+
+    private Integer parseOffsetFromCursor(String cursor) {
+        if (cursor == null || cursor.isEmpty()) {
+            return null;
+        }
+        try {
+            String decoded = new String(Base64.getDecoder().decode(cursor));
+            return Integer.parseInt(decoded);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
