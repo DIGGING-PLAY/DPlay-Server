@@ -69,7 +69,7 @@ public class AppleMusicService {
                     .toList();
 
             String nextCursor = response.results().songs().next() != null
-                    ? encodeCursor(response.results().songs().next(), offset != null ? offset + limit : limit)
+                    ? encodeCursor(offset != null ? offset + limit : limit)
                     : null;
 
             return new MusicSearchResult(items, nextCursor);
@@ -79,10 +79,9 @@ public class AppleMusicService {
         }
     }
 
-    private String encodeCursor(String nextUrl, int currentOffset) {
+    private String encodeCursor(int currentOffset) {
         try {
-            // Apple Music API의 next URL을 기반으로 커서 생성
-            // 실제로는 offset 정보를 인코딩
+            // offset 정보를 Base64로 인코딩하여 커서 생성
             String cursorData = String.valueOf(currentOffset);
             return Base64.getEncoder().encodeToString(cursorData.getBytes());
         } catch (Exception e) {
