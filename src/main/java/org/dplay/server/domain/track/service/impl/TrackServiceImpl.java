@@ -3,6 +3,7 @@ package org.dplay.server.domain.track.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dplay.server.domain.music.openfeign.apple.service.AppleMusicService;
+import org.dplay.server.domain.track.dto.TrackDetailResultDto;
 import org.dplay.server.domain.track.dto.TrackSearchResultDto;
 import org.dplay.server.domain.track.entity.Track;
 import org.dplay.server.domain.track.repository.TrackRepository;
@@ -148,5 +149,23 @@ public class TrackServiceImpl implements TrackService {
             log.warn("잘못된 커서 형식: {}", cursor, e);
             return null;
         }
+    }
+
+    @Override
+    public TrackDetailResultDto getTrackDetail(String trackId, String storefront) {
+        String finalStorefront = storefront != null && !storefront.isEmpty() ? storefront : DEFAULT_STOREFRONT;
+
+        AppleMusicService.MusicTrackDetailResult result = appleMusicService.getTrackDetail(
+                trackId,
+                finalStorefront
+        );
+
+        return TrackDetailResultDto.of(
+                result.trackId(),
+                result.songTitle(),
+                result.artistName(),
+                result.coverImg(),
+                result.isrc()
+        );
     }
 }
