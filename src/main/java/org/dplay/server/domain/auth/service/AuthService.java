@@ -13,7 +13,6 @@ import org.dplay.server.domain.auth.openfeign.kakao.service.KakaoService;
 import org.dplay.server.domain.s3.S3Service;
 import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.entity.User;
-import org.dplay.server.domain.user.repository.UserRepository;
 import org.dplay.server.domain.user.service.UserService;
 import org.dplay.server.global.auth.constant.Constant;
 import org.dplay.server.global.auth.jwt.JwtTokenProvider;
@@ -35,7 +34,6 @@ public class AuthService {
     private final UserService userService;
     private final TokenSaver tokenSaver;
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserRepository userRepository;
     private final NicknameValidator nicknameValidator;
 
     @Transactional
@@ -44,7 +42,7 @@ public class AuthService {
         boolean isRegistered = userService.existsByProviderIdAndProvider(socialUserDto.platformId(), loginRequest.platform());
 
         if (isRegistered) {
-            User user = userService.findByProviderIdAndProvider(socialUserDto.platformId(), loginRequest.platform());
+            User user = userService.findUserByProviderIdAndProvider(socialUserDto.platformId(), loginRequest.platform());
             JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
             tokenSaver.save(
                     Token.builder()
@@ -102,12 +100,5 @@ public class AuthService {
 
     public Long getUserIdFromToken(final String accessToken) {
         return jwtTokenProvider.getUserIdFromJwt(accessToken.substring(Constant.BEARER_TOKEN_PREFIX.length()));
-    }
-
-    public User getUserFromToken(final String accessToken) {
-        Long userId = jwtTokenProvider.getUserIdFromJwt(accessToken.substring(Constant.BEARER_TOKEN_PREFIX.length()));
-
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
     }
 }

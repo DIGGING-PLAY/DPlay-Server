@@ -21,17 +21,14 @@ import java.util.Objects;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final AuthService authService;
     private final S3Service s3Service;
     private final NicknameValidator nicknameValidator;
 
     @Override
-    public void updateProfileImage(String accessToken, MultipartFile profileImg) throws IOException {
-        User user = authService.getUserFromToken(accessToken);
+    public void updateProfileImage(Long userId, MultipartFile profileImg) throws IOException {
+        User user = findUserById(userId);
 
-        String profileImgUrl = (profileImg == null) ? null
-                : profileImg.isEmpty() ? ""
-                : s3Service.uploadImage(profileImg);
+        String profileImgUrl = (profileImg == null) ? null : profileImg.isEmpty() ? "" : s3Service.uploadImage(profileImg);
 
         if (profileImgUrl == null) {
             return;
@@ -43,8 +40,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void updateNickname(String accessToken, String nickname) {
-        User user = authService.getUserFromToken(accessToken);
+    public void updateNickname(Long userId, String nickname) {
+        User user = findUserById(userId);
 
         if (Objects.equals(user.getNickname(), nickname)) {
             return;
@@ -64,12 +61,15 @@ public class UserServiceImpl implements UserService {
         return userRepository.existsByNickname(nickname);
     }
 
-    public User findByProviderIdAndProvider(final String providerId, Platform platform) {
-        return userRepository.findByPlatformIdAndPlatform(providerId, platform)
-                .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
+    public User findUserByProviderIdAndProvider(final String providerId, Platform platform) {
+        return userRepository.findByPlatformIdAndPlatform(providerId, platform).orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
     }
 
-    public User save(final User user){
+    public User findUserById(final Long userId) {
+        return userRepository.findById(userId).orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
+    }
+
+    public User save(final User user) {
         return userRepository.save(user);
     }
 }
