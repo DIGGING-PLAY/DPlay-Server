@@ -10,6 +10,7 @@ import org.dplay.server.domain.auth.dto.SocialUserDto;
 import org.dplay.server.domain.auth.entity.Token;
 import org.dplay.server.domain.auth.openfeign.apple.service.AppleService;
 import org.dplay.server.domain.auth.openfeign.kakao.service.KakaoService;
+import org.dplay.server.domain.s3.S3Service;
 import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.UserRetriever;
 import org.dplay.server.domain.user.UserSaver;
@@ -19,7 +20,9 @@ import org.dplay.server.global.auth.jwt.JwtTokenProvider;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.regex.Pattern;
 
 import static org.dplay.server.global.auth.constant.Constant.BEARER_TOKEN_PREFIX;
@@ -30,6 +33,7 @@ public class AuthService {
 
     private final KakaoService kakaoService;
     private final AppleService appleService;
+    private final S3Service s3Service;
     private final UserRetriever userRetriever;
     private final UserSaver userSaver;
     private final TokenSaver tokenSaver;
@@ -57,15 +61,20 @@ public class AuthService {
     }
 
     @Transactional
-    public JwtTokenResponse signup(final String providerToken, final SignupRequest signupRequest, final String profileImg) {
+    public JwtTokenResponse signup(final String providerToken, final SignupRequest signupRequest, final MultipartFile profileImg) throws IOException {
         SocialUserDto socialUserDto = getSocialInfo(providerToken, signupRequest.platform());
+
+        if (userRetriever.existsByProviderIdAndProvider(socialUserDto.platformId(), signupRequest.platform())) {
+            throw new DPlayException(ResponseError.USER_ALREADY_EXISTS);
+        }
+
         validateNickname(signupRequest.nickname());
 
         User user = User.builder()
                 .platformId(socialUserDto.platformId())
                 .platform(signupRequest.platform())
                 .nickname(signupRequest.nickname())
-                .profileImg(profileImg).build();
+                .profileImg((profileImg == null) ? null : s3Service.uploadImage(profileImg)).build();
         userSaver.save(user);
 
         JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
@@ -101,5 +110,12 @@ public class AuthService {
 
     public Long getUserIdFromToken(final String accessToken) {
         return jwtTokenProvider.getUserIdFromJwt(accessToken.replace(BEARER_TOKEN_PREFIX, ""));
+    }
+
+    public User getUserFromToken(final String accessToken) {
+        Long userId = jwtTokenProvider.getUserIdFromJwt(accessToken.replace(BEARER_TOKEN_PREFIX, ""));
+
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
     }
 }
