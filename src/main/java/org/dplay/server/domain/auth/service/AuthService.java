@@ -19,11 +19,11 @@ import org.dplay.server.domain.user.repository.UserRepository;
 import org.dplay.server.global.auth.jwt.JwtTokenProvider;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
+import org.dplay.server.global.util.NicknameValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.regex.Pattern;
 
 import static org.dplay.server.global.auth.constant.Constant.BEARER_TOKEN_PREFIX;
 
@@ -39,6 +39,7 @@ public class AuthService {
     private final TokenSaver tokenSaver;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
+    private final NicknameValidator nicknameValidator;
 
     @Transactional
     public JwtTokenResponse login(final String providerToken, final LoginRequest loginRequest) {
@@ -68,7 +69,11 @@ public class AuthService {
             throw new DPlayException(ResponseError.USER_ALREADY_EXISTS);
         }
 
-        validateNickname(signupRequest.nickname());
+        if (userRetriever.existsByNickname(signupRequest.nickname())) {
+            throw new DPlayException(ResponseError.RESOURCE_ALREADY_EXISTS);
+        } else {
+            nicknameValidator.validate(signupRequest.nickname());
+        }
 
         User user = User.builder()
                 .platformId(socialUserDto.platformId())
@@ -95,16 +100,6 @@ public class AuthService {
             return appleService.getSocialUserInfo(providerToken);
         } else {
             throw new DPlayException(ResponseError.INVALID_PLATFORM_TYPE);
-        }
-    }
-
-    public void validateNickname(final String nickname) {
-        if (userRepository.existsByNickname(nickname)) {
-            throw new DPlayException(ResponseError.RESOURCE_ALREADY_EXISTS);
-        } else if (nickname.length() < 2 || nickname.length() > 10) {
-            throw new DPlayException(ResponseError.INVALID_INPUT_LENGTH);
-        } else if (!Pattern.compile("^[가-힣a-zA-Z0-9]+$").matcher(nickname).matches()) {
-            throw new DPlayException(ResponseError.INVALID_INPUT_NICKNAME);
         }
     }
 

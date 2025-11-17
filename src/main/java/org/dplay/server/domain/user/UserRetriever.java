@@ -17,6 +17,10 @@ public class UserRetriever {
         return userRepository.existsByPlatformIdAndPlatform(providerId, platform);
     }
 
+    public boolean existsByNickname(final String nickname) {
+        return userRepository.existsByNickname(nickname);
+    }
+
     public User findByProviderIdAndProvider(final String providerId, Platform platform) {
         return userRepository.findByPlatformIdAndPlatform(providerId, platform)
                 .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
