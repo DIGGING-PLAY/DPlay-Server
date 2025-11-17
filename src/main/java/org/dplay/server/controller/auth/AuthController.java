@@ -7,8 +7,6 @@ import org.dplay.server.controller.auth.dto.JwtTokenResponse;
 import org.dplay.server.controller.auth.dto.LoginRequest;
 import org.dplay.server.controller.auth.dto.SignupRequest;
 import org.dplay.server.domain.auth.service.AuthService;
-import org.dplay.server.domain.s3.S3Service;
-import org.dplay.server.domain.user.Platform;
 import org.dplay.server.global.auth.constant.Constant;
 import org.dplay.server.global.response.ApiResponse;
 import org.dplay.server.global.response.ResponseBuilder;
@@ -17,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/v1/auth")
@@ -25,17 +22,12 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
-    private final S3Service s3Service;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<JwtTokenResponse>> login(
             @NotNull @RequestHeader(Constant.AUTHORIZATION_HEADER) final String providerToken,
-            @Valid @RequestBody Map<String, String> body
+            @Valid @RequestBody LoginRequest loginRequest
     ) {
-        String platformStr = body.get("platform");
-        Platform platform = Platform.from(platformStr);
-        LoginRequest loginRequest = new LoginRequest(platform);
-
         return ResponseBuilder.ok(authService.login(providerToken, loginRequest));
     }
 
@@ -45,12 +37,11 @@ public class AuthController {
             @Valid @RequestPart SignupRequest signupRequest,
             @RequestPart(value = "profileImg", required = false) MultipartFile profileImg
     ) throws IOException {
-        String profileImgUrl = (profileImg == null) ? null : s3Service.uploadImage(profileImg);
 
         JwtTokenResponse jwtTokenResponse = authService.signup(
                 providerToken,
                 signupRequest,
-                profileImgUrl
+                profileImg
         );
 
         return ResponseBuilder.created(jwtTokenResponse);
