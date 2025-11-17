@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dplay.server.domain.music.openfeign.apple.service.AppleMusicService;
 import org.dplay.server.domain.track.dto.TrackDetailResultDto;
+import org.dplay.server.domain.track.dto.TrackPreviewResultDto;
 import org.dplay.server.domain.track.dto.TrackSearchResultDto;
 import org.dplay.server.domain.track.entity.Track;
 import org.dplay.server.domain.track.repository.TrackRepository;
@@ -15,8 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -166,6 +169,31 @@ public class TrackServiceImpl implements TrackService {
                 result.artistName(),
                 result.coverImg(),
                 result.isrc()
+        );
+    }
+
+    @Override
+    public TrackPreviewResultDto getPreview(String trackId, String storefront) {
+        String finalStorefront = storefront != null && !storefront.isEmpty() ? storefront : DEFAULT_STOREFRONT;
+
+        // Apple Music API 호출
+        AppleMusicService.MusicPreviewResult result = appleMusicService.getTrackPreview(
+                trackId,
+                finalStorefront
+        );
+
+        // sessionId 생성 (로깅 및 트래킹용)
+        String sessionId = "pvw_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20).toUpperCase();
+
+        // expiresAt은 Apple Music API에서 제공하지 않으므로 null로 설정
+        // 필요시 미래 시점으로 설정 가능 (예: 현재 시간 + 1시간)
+        Instant expiresAt = null;
+
+        return TrackPreviewResultDto.of(
+                sessionId,
+                result.trackId(),
+                result.streamUrl(),
+                expiresAt
         );
     }
 }

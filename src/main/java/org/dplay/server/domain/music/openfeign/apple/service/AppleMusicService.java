@@ -171,12 +171,69 @@ public class AppleMusicService {
     ) {
     }
 
+    /**
+     * Apple Music API를 통해 트랙 미리듣기 URL 조회
+     *
+     * @param trackId    트랙 ID (apple:{appleMusicId} 형식)
+     * @param storefront 국가 코드 (기본값: kr)
+     * @return 미리듣기 URL 정보
+     */
+    public MusicPreviewResult getTrackPreview(String trackId, String storefront) {
+        String developerToken = appleMusicTokenService.generateDeveloperToken();
+        String authorization = "Bearer " + developerToken;
+
+        // trackId에서 appleMusicId 추출 (apple:{appleMusicId} 형식)
+        String appleMusicId = extractAppleMusicId(trackId);
+        if (appleMusicId == null) {
+            throw new IllegalArgumentException("Invalid trackId format: " + trackId);
+        }
+
+        try {
+            AppleMusicTrackDetailResponse response = appleMusicFeignClient.getTrackDetail(
+                    authorization,
+                    storefront,
+                    appleMusicId
+            );
+
+            if (response == null || response.data() == null || response.data().isEmpty()) {
+                throw new RuntimeException("Track not found: " + trackId);
+            }
+
+            AppleMusicTrackData trackData = response.data().get(0);
+            var attrs = trackData.attributes();
+
+            // 미리듣기 URL 추출
+            String previewUrl = null;
+            if (attrs.previews() != null && !attrs.previews().isEmpty()) {
+                previewUrl = attrs.previews().get(0).url();
+            }
+
+            if (previewUrl == null) {
+                throw new RuntimeException("Preview URL not available for track: " + trackId);
+            }
+
+            return new MusicPreviewResult(
+                    trackId,
+                    previewUrl
+            );
+        } catch (Exception e) {
+            log.error("Failed to get track preview from Apple Music (trackId: {})", trackId, e);
+            throw new RuntimeException("Failed to get track preview from Apple Music: " + e.getMessage(), e);
+        }
+    }
+
     public record MusicTrackDetailResult(
             String trackId,
             String songTitle,
             String artistName,
             String coverImg,
             String isrc
+    ) {
+    }
+
+    public record MusicPreviewResult(
+            String trackId,
+            String streamUrl
     ) {
     }
 }
