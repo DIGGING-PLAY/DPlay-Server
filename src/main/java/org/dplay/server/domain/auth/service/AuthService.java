@@ -16,6 +16,7 @@ import org.dplay.server.domain.user.UserRetriever;
 import org.dplay.server.domain.user.UserSaver;
 import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.domain.user.repository.UserRepository;
+import org.dplay.server.global.auth.constant.Constant;
 import org.dplay.server.global.auth.jwt.JwtTokenProvider;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
@@ -104,11 +105,11 @@ public class AuthService {
     }
 
     public Long getUserIdFromToken(final String accessToken) {
-        return jwtTokenProvider.getUserIdFromJwt(accessToken.replace(BEARER_TOKEN_PREFIX, ""));
+        return jwtTokenProvider.getUserIdFromJwt(accessToken.substring(Constant.BEARER_TOKEN_PREFIX.length()));
     }
 
     public User getUserFromToken(final String accessToken) {
-        Long userId = jwtTokenProvider.getUserIdFromJwt(accessToken.replace(BEARER_TOKEN_PREFIX, ""));
+        Long userId = jwtTokenProvider.getUserIdFromJwt(accessToken.substring(Constant.BEARER_TOKEN_PREFIX.length()));
 
         return userRepository.findById(userId)
                 .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
