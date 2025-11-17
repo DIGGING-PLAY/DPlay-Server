@@ -12,10 +12,10 @@ import org.dplay.server.domain.auth.openfeign.apple.service.AppleService;
 import org.dplay.server.domain.auth.openfeign.kakao.service.KakaoService;
 import org.dplay.server.domain.s3.S3Service;
 import org.dplay.server.domain.user.Platform;
-import org.dplay.server.domain.user.UserRetriever;
 import org.dplay.server.domain.user.UserSaver;
 import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.domain.user.repository.UserRepository;
+import org.dplay.server.domain.user.service.UserService;
 import org.dplay.server.global.auth.constant.Constant;
 import org.dplay.server.global.auth.jwt.JwtTokenProvider;
 import org.dplay.server.global.exception.DPlayException;
@@ -26,8 +26,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
-import static org.dplay.server.global.auth.constant.Constant.BEARER_TOKEN_PREFIX;
-
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -35,7 +33,7 @@ public class AuthService {
     private final KakaoService kakaoService;
     private final AppleService appleService;
     private final S3Service s3Service;
-    private final UserRetriever userRetriever;
+    private final UserService userService;
     private final UserSaver userSaver;
     private final TokenSaver tokenSaver;
     private final JwtTokenProvider jwtTokenProvider;
@@ -45,10 +43,10 @@ public class AuthService {
     @Transactional
     public JwtTokenResponse login(final String providerToken, final LoginRequest loginRequest) {
         SocialUserDto socialUserDto = getSocialInfo(providerToken, loginRequest.platform());
-        boolean isRegistered = userRetriever.existsByProviderIdAndProvider(socialUserDto.platformId(), loginRequest.platform());
+        boolean isRegistered = userService.existsByProviderIdAndProvider(socialUserDto.platformId(), loginRequest.platform());
 
         if (isRegistered) {
-            User user = userRetriever.findByProviderIdAndProvider(socialUserDto.platformId(), loginRequest.platform());
+            User user = userService.findByProviderIdAndProvider(socialUserDto.platformId(), loginRequest.platform());
             JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
             tokenSaver.save(
                     Token.builder()
@@ -66,11 +64,11 @@ public class AuthService {
     public JwtTokenResponse signup(final String providerToken, final SignupRequest signupRequest, final MultipartFile profileImg) throws IOException {
         SocialUserDto socialUserDto = getSocialInfo(providerToken, signupRequest.platform());
 
-        if (userRetriever.existsByProviderIdAndProvider(socialUserDto.platformId(), signupRequest.platform())) {
+        if (userService.existsByProviderIdAndProvider(socialUserDto.platformId(), signupRequest.platform())) {
             throw new DPlayException(ResponseError.USER_ALREADY_EXISTS);
         }
 
-        if (userRetriever.existsByNickname(signupRequest.nickname())) {
+        if (userService.existsByNickname(signupRequest.nickname())) {
             throw new DPlayException(ResponseError.RESOURCE_ALREADY_EXISTS);
         } else {
             nicknameValidator.validate(signupRequest.nickname());
