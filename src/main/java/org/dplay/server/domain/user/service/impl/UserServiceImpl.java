@@ -68,4 +68,8 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByPlatformIdAndPlatform(providerId, platform)
                 .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
     }
+
+    public User save(final User user){
+        return userRepository.save(user);
+    }
 }

@@ -16,4 +16,6 @@ public interface UserService {
     boolean existsByNickname(final String nickname);
 
     User findByProviderIdAndProvider(final String providerId, Platform platform);
+
+    User save(final User user);
 }

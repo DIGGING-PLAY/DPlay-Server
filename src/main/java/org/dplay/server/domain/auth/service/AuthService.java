@@ -12,7 +12,6 @@ import org.dplay.server.domain.auth.openfeign.apple.service.AppleService;
 import org.dplay.server.domain.auth.openfeign.kakao.service.KakaoService;
 import org.dplay.server.domain.s3.S3Service;
 import org.dplay.server.domain.user.Platform;
-import org.dplay.server.domain.user.UserSaver;
 import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.domain.user.repository.UserRepository;
 import org.dplay.server.domain.user.service.UserService;
@@ -34,7 +33,6 @@ public class AuthService {
     private final AppleService appleService;
     private final S3Service s3Service;
     private final UserService userService;
-    private final UserSaver userSaver;
     private final TokenSaver tokenSaver;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
@@ -79,7 +77,7 @@ public class AuthService {
                 .platform(signupRequest.platform())
                 .nickname(signupRequest.nickname())
                 .profileImg((profileImg == null) ? null : s3Service.uploadImage(profileImg)).build();
-        userSaver.save(user);
+        userService.save(user);
 
         JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
         tokenSaver.save(Token.builder()
