@@ -1,6 +1,7 @@
 package org.dplay.server.domain.music.openfeign.apple;
 
 import org.dplay.server.domain.music.openfeign.apple.dto.AppleMusicSearchResponse;
+import org.dplay.server.domain.music.openfeign.apple.dto.AppleMusicTrackDetailResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +19,13 @@ public interface AppleMusicFeignClient {
             @RequestParam(value = "limit", defaultValue = "20") Integer limit,
             @RequestParam(value = "offset", required = false) Integer offset,
             @PathVariable("storefront") String storefront
+    );
+
+    @GetMapping("/v1/catalog/{storefront}/songs/{id}")
+    AppleMusicTrackDetailResponse getTrackDetail(
+            @RequestHeader("Authorization") String authorization,
+            @PathVariable("storefront") String storefront,
+            @PathVariable("id") String id
     );
 }
 

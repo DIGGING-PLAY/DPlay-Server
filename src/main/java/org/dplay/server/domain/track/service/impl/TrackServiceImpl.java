@@ -3,6 +3,7 @@ package org.dplay.server.domain.track.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dplay.server.domain.music.openfeign.apple.service.AppleMusicService;
+import org.dplay.server.domain.track.dto.TrackDetailResultDto;
 import org.dplay.server.domain.track.dto.TrackSearchResultDto;
 import org.dplay.server.domain.track.entity.Track;
 import org.dplay.server.domain.track.repository.TrackRepository;
@@ -148,5 +149,39 @@ public class TrackServiceImpl implements TrackService {
             log.warn("잘못된 커서 형식: {}", cursor, e);
             return null;
         }
+    }
+
+    @Override
+    public TrackDetailResultDto getTrackDetail(String trackId, String storefront) {
+        // 1. DB에서 먼저 조회 (캐시 역할)
+        Optional<Track> trackOptional = trackRepository.findByTrackId(trackId);
+        if (trackOptional.isPresent()) {
+            Track track = trackOptional.get();
+            log.debug("Track 정보를 DB에서 조회 (trackId: {})", trackId);
+            return TrackDetailResultDto.of(
+                    track.getTrackId(),
+                    track.getSongTitle(),
+                    track.getArtistName(),
+                    track.getCoverImg(),
+                    track.getIsrc()
+            );
+        }
+
+        // 2. DB에 없으면 Apple Music API 호출
+        log.debug("Track 정보를 Apple Music API에서 조회 (trackId: {})", trackId);
+        String finalStorefront = storefront != null && !storefront.isEmpty() ? storefront : DEFAULT_STOREFRONT;
+
+        AppleMusicService.MusicTrackDetailResult result = appleMusicService.getTrackDetail(
+                trackId,
+                finalStorefront
+        );
+
+        return TrackDetailResultDto.of(
+                result.trackId(),
+                result.songTitle(),
+                result.artistName(),
+                result.coverImg(),
+                result.isrc()
+        );
     }
 }

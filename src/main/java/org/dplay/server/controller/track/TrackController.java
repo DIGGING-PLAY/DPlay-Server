@@ -1,7 +1,9 @@
 package org.dplay.server.controller.track;
 
 import lombok.RequiredArgsConstructor;
+import org.dplay.server.controller.track.dto.TrackDetailResponse;
 import org.dplay.server.controller.track.dto.TrackSearchResponse;
+import org.dplay.server.domain.track.dto.TrackDetailResultDto;
 import org.dplay.server.domain.track.dto.TrackSearchResultDto;
 import org.dplay.server.domain.track.service.TrackService;
 import org.dplay.server.global.exception.DPlayException;
@@ -60,6 +62,36 @@ public class TrackController {
                 result.nextCursor(),
                 result.items()
         );
+
+        return ResponseBuilder.ok(response);
+    }
+
+    /**
+     * [ 음악 상세 조회 API ]
+     *
+     * @param accessToken 인증 토큰
+     * @param trackId     트랙 ID (apple:{appleMusicId} 형식)
+     * @param storefront  국가 코드
+     * @return TrackDetailResponse
+     * @apiNote Apple Music API를 통해 특정 트랙의 상세 정보를 조회합니다.
+     */
+    @GetMapping("/{trackId}")
+    public ResponseEntity<ApiResponse<TrackDetailResponse>> getTrackDetail(
+            @RequestHeader("Authorization") final String accessToken,
+            @PathVariable("trackId") String trackId,
+            @RequestParam(value = "storefront", required = false) String storefront
+    ) {
+        // trackId 검증
+        if (trackId == null || trackId.trim().isEmpty() || !trackId.startsWith("apple:")) {
+            throw new DPlayException(ResponseError.INVALID_REQUEST_PARAMETER);
+        }
+
+        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
+        // 예: Long userId = authService.getUserIdFromToken(accessToken);
+
+        TrackDetailResultDto result = trackService.getTrackDetail(trackId, storefront);
+
+        TrackDetailResponse response = TrackDetailResponse.from(result);
 
         return ResponseBuilder.ok(response);
     }

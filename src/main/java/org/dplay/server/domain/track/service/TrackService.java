@@ -1,5 +1,6 @@
 package org.dplay.server.domain.track.service;
 
+import org.dplay.server.domain.track.dto.TrackDetailResultDto;
 import org.dplay.server.domain.track.dto.TrackSearchResultDto;
 import org.dplay.server.domain.track.entity.Track;
 
@@ -13,4 +14,6 @@ public interface TrackService {
     Track createTrack(String trackId, String songTitle, String artistName, String coverImg, String isrc);
 
     TrackSearchResultDto searchTracks(String query, Integer limit, String storefront, String cursor);
+
+    TrackDetailResultDto getTrackDetail(String trackId, String storefront);
 }
