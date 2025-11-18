@@ -36,11 +36,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional
     public JwtTokenResponse login(final String providerToken, final LoginRequest loginRequest) {
-        SocialUserDto socialUserDto = getSocialInfo(providerToken, loginRequest.platform());
-        boolean isRegistered = userService.existsByProviderIdAndProvider(socialUserDto.platformId(), loginRequest.platform());
+        String platformId = getSocialInfo(providerToken, loginRequest.platform()).platformId();
+        boolean isRegistered = userService.existsByProviderIdAndProvider(platformId, loginRequest.platform());
 
         if (isRegistered) {
-            User user = userService.findUserByProviderIdAndProvider(socialUserDto.platformId(), loginRequest.platform());
+            User user = userService.findUserByProviderIdAndProvider(platformId, loginRequest.platform());
             JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
             user.updateRefreshToken(tokens.refreshToken());
             return tokens;
@@ -51,9 +51,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional
     public JwtTokenResponse signup(final String providerToken, final SignupRequest signupRequest, final MultipartFile profileImg) throws IOException {
-        SocialUserDto socialUserDto = getSocialInfo(providerToken, signupRequest.platform());
+        String platformId = getSocialInfo(providerToken, signupRequest.platform()).platformId();
 
-        if (userService.existsByProviderIdAndProvider(socialUserDto.platformId(), signupRequest.platform())) {
+        if (userService.existsByProviderIdAndProvider(platformId, signupRequest.platform())) {
             throw new DPlayException(ResponseError.USER_ALREADY_EXISTS);
         }
 
@@ -64,7 +64,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = User.builder()
-                .platformId(socialUserDto.platformId())
+                .platformId(platformId)
                 .platform(signupRequest.platform())
                 .nickname(signupRequest.nickname())
                 .profileImg((profileImg == null) ? null : s3Service.uploadImage(profileImg)).build();
