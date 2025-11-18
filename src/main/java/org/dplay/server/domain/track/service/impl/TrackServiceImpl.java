@@ -198,7 +198,7 @@ public class TrackServiceImpl implements TrackService {
         );
 
         // sessionId 생성 (로깅 및 트래킹용)
-        String sessionId = "pvw_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20).toUpperCase();
+        String sessionId = "pvw_" + UUID.randomUUID().toString().replace("-", "");
 
         return TrackPreviewResultDto.of(
                 sessionId,
