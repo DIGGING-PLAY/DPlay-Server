@@ -14,7 +14,11 @@ public interface AuthService {
 
     JwtTokenResponse signup(String providerToken, SignupRequest signupRequest, MultipartFile profileImg) throws IOException;
 
+    JwtTokenResponse reissueToken(String refreshToken);
+
     SocialUserDto getSocialInfo(String providerToken, Platform platform);
 
     Long getUserIdFromToken(String accessToken);
+
+    String getToken(String token);
 }
