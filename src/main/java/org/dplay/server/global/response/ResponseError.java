@@ -33,6 +33,7 @@ public enum ResponseError {
     // Conflict (409)
     RESOURCE_ALREADY_EXISTS(4090, "이미 존재하는 리소스입니다."),
     CONCURRENT_OPERATION_FAILED(4091, "동시 요청으로 인한 작업 실패. 잠시 후 다시 시도해주세요."),
+    USER_ALREADY_EXISTS(4092, "이미 존재하는 유저입니다."),
 
     // Internal Server Error (500)
     INTERNAL_SERVER_ERROR(5000, "서버 내부 오류입니다.");
