@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.dplay.server.controller.track.dto.TrackDetailResponse;
 import org.dplay.server.controller.track.dto.TrackPreviewResponse;
 import org.dplay.server.controller.track.dto.TrackSearchResponse;
+import org.dplay.server.domain.auth.service.AuthService;
 import org.dplay.server.domain.track.dto.TrackDetailResultDto;
 import org.dplay.server.domain.track.dto.TrackPreviewResultDto;
 import org.dplay.server.domain.track.dto.TrackSearchResultDto;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class TrackController {
     private final TrackService trackService;
+    private final AuthService authService;
 
     /**
      * [ 음악 검색 API ]
@@ -47,8 +49,8 @@ public class TrackController {
         if (query.length() > 100) {
             throw new DPlayException(ResponseError.INVALID_INPUT_LENGTH);
         }
-        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
-        // 예: Long userId = authService.getUserIdFromToken(accessToken);
+        // 인증 검증 (토큰 유효성 확인)
+        authService.getUserIdFromToken(accessToken);
 
         TrackSearchResultDto result = trackService.searchTracks(
                 query,
@@ -87,9 +89,8 @@ public class TrackController {
         if (trackId == null || trackId.trim().isEmpty() || !trackId.startsWith("apple:")) {
             throw new DPlayException(ResponseError.INVALID_REQUEST_PARAMETER);
         }
-
-        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
-        // 예: Long userId = authService.getUserIdFromToken(accessToken);
+        // 인증 검증 (토큰 유효성 확인)
+        authService.getUserIdFromToken(accessToken);
 
         TrackDetailResultDto result = trackService.getTrackDetail(trackId, storefront);
 
@@ -117,9 +118,8 @@ public class TrackController {
         if (trackId == null || trackId.trim().isEmpty() || !trackId.startsWith("apple:")) {
             throw new DPlayException(ResponseError.INVALID_REQUEST_PARAMETER);
         }
-
-        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
-        // 예: Long userId = authService.getUserIdFromToken(accessToken);
+        // 인증 검증 (토큰 유효성 확인)
+        authService.getUserIdFromToken(accessToken);
 
         TrackPreviewResultDto result = trackService.getPreview(trackId, storefront);
 
