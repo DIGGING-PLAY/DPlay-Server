@@ -1,24 +1,19 @@
 package org.dplay.server.domain.track.dto;
 
-import java.time.Instant;
-
 public record TrackPreviewResultDto(
         String sessionId,
         String trackId,
-        String streamUrl,
-        Instant expiresAt
+        String streamUrl
 ) {
     public static TrackPreviewResultDto of(
             String sessionId,
             String trackId,
-            String streamUrl,
-            Instant expiresAt
+            String streamUrl
     ) {
         return new TrackPreviewResultDto(
                 sessionId,
                 trackId,
-                streamUrl,
-                expiresAt
+                streamUrl
         );
     }
 }

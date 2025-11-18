@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.UUID;
@@ -201,15 +200,10 @@ public class TrackServiceImpl implements TrackService {
         // sessionId 생성 (로깅 및 트래킹용)
         String sessionId = "pvw_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20).toUpperCase();
 
-        // expiresAt은 Apple Music API에서 제공하지 않으므로 null로 설정
-        // 필요시 미래 시점으로 설정 가능 (예: 현재 시간 + 1시간)
-        Instant expiresAt = null;
-
         return TrackPreviewResultDto.of(
                 sessionId,
                 result.trackId(),
-                result.streamUrl(),
-                expiresAt
+                result.streamUrl()
         );
     }
 }
