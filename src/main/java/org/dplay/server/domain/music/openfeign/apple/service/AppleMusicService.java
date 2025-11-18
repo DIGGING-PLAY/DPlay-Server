@@ -7,6 +7,8 @@ import org.dplay.server.domain.music.openfeign.apple.AppleMusicFeignClient;
 import org.dplay.server.domain.music.openfeign.apple.dto.AppleMusicSearchResponse;
 import org.dplay.server.domain.music.openfeign.apple.dto.AppleMusicTrackData;
 import org.dplay.server.domain.music.openfeign.apple.dto.AppleMusicTrackDetailResponse;
+import org.dplay.server.global.exception.DPlayException;
+import org.dplay.server.global.response.ResponseError;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -100,13 +102,16 @@ public class AppleMusicService {
      * @return 트랙 상세 정보
      */
     public MusicTrackDetailResult getTrackDetail(String trackId, String storefront) {
+        if (storefront == null || storefront.isBlank()) {
+            storefront = "kr";
+        }
         String developerToken = appleMusicTokenService.generateDeveloperToken();
         String authorization = "Bearer " + developerToken;
 
         // trackId에서 appleMusicId 추출 (apple:{appleMusicId} 형식)
         String appleMusicId = extractAppleMusicId(trackId);
         if (appleMusicId == null) {
-            throw new IllegalArgumentException("Invalid trackId format: " + trackId);
+            throw new DPlayException(ResponseError.INVALID_REQUEST_PARAMETER);
         }
 
         try {
@@ -117,7 +122,7 @@ public class AppleMusicService {
             );
 
             if (response == null || response.data() == null || response.data().isEmpty()) {
-                throw new RuntimeException("Track not found: " + trackId);
+                throw new DPlayException(ResponseError.TARGET_NOT_FOUND);
             }
 
             AppleMusicTrackData trackData = response.data().get(0);
@@ -132,9 +137,12 @@ public class AppleMusicService {
                     coverImg,
                     attrs.isrc()
             );
+        } catch (DPlayException e) {
+            // DPlayException은 그대로 전파
+            throw e;
         } catch (Exception e) {
             log.error("Failed to get track detail from Apple Music (trackId: {})", trackId, e);
-            throw new RuntimeException("Failed to get track detail from Apple Music: " + e.getMessage(), e);
+            throw new DPlayException(ResponseError.TARGET_NOT_FOUND);
         }
     }
 
@@ -143,13 +151,14 @@ public class AppleMusicService {
      * 형식: apple:{appleMusicId}
      *
      * @param trackId 트랙 ID
-     * @return Apple Music ID
+     * @return Apple Music ID (ID가 비어있으면 null 반환)
      */
     private String extractAppleMusicId(String trackId) {
         if (trackId == null || !trackId.startsWith("apple:")) {
             return null;
         }
-        return trackId.substring(6); // "apple:".length() = 6
+        String id = trackId.substring(6); // "apple:".length() = 6
+        return id.isEmpty() ? null : id;
     }
 
     /**
