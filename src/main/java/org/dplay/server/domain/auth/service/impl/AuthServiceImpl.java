@@ -1,7 +1,7 @@
 package org.dplay.server.domain.auth.service.impl;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.dplay.server.controller.auth.dto.JwtTokenResponse;
 import org.dplay.server.controller.auth.dto.LoginRequest;
 import org.dplay.server.controller.auth.dto.SignupRequest;
@@ -19,12 +19,15 @@ import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
 import org.dplay.server.global.util.NicknameValidator;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AuthServiceImpl implements AuthService {
 
     private final KakaoService kakaoService;
@@ -37,14 +40,19 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public JwtTokenResponse login(final String providerToken, final LoginRequest loginRequest) {
         String platformId = getSocialInfo(providerToken, loginRequest.platform()).platformId();
+        log.info("[LOGIN-MIDDLE-1] 소셜 로그인 정보 조회 성공. platformId={}", platformId);
         boolean isRegistered = userService.existsByProviderIdAndProvider(platformId, loginRequest.platform());
+        log.info("[LOGIN-MIDDLE-2] 가입 여부 확인. isRegistered={}", isRegistered);
 
         if (isRegistered) {
             User user = userService.findUserByProviderIdAndProvider(platformId, loginRequest.platform());
             JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
             user.updateRefreshToken(tokens.refreshToken());
+            log.info("[LOGIN-END] 로그인 성공. userId={}, accessTokenPrefix={}",
+                    user.getUserId(), tokens.accessToken().substring(0, 10));
             return tokens;
         } else {
+            log.warn("[LOGIN-FAIL] 등록되지 않은 사용자 platformId={}", platformId);
             throw new DPlayException(ResponseError.USER_NOT_FOUND);
         }
     }
@@ -63,16 +71,10 @@ public class AuthServiceImpl implements AuthService {
             nicknameValidator.validate(signupRequest.nickname());
         }
 
-        User user = User.builder()
-                .platformId(platformId)
-                .platform(signupRequest.platform())
-                .nickname(signupRequest.nickname())
-                .profileImg((profileImg == null) ? null : s3Service.uploadImage(profileImg)).build();
+        User user = userService.makeUser(platformId, signupRequest.platform(), signupRequest.nickname(), profileImg);
         userService.save(user);
 
         JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
-        user.updateRefreshToken(tokens.refreshToken());
-
         user.updateRefreshToken(tokens.refreshToken());
 
         return tokens;

@@ -52,23 +52,37 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    public boolean existsByProviderIdAndProvider(final String providerId, final Platform platform) {
+    @Override
+    public boolean existsByProviderIdAndProvider(String providerId, Platform platform) {
         return userRepository.existsByPlatformIdAndPlatform(providerId, platform);
     }
 
-    public boolean existsByNickname(final String nickname) {
+    @Override
+    public boolean existsByNickname(String nickname) {
         return userRepository.existsByNickname(nickname);
     }
 
-    public User findUserByProviderIdAndProvider(final String providerId, Platform platform) {
+    @Override
+    public User findUserByProviderIdAndProvider(String providerId, Platform platform) {
         return userRepository.findByPlatformIdAndPlatform(providerId, platform).orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
     }
 
-    public User findUserById(final Long userId) {
+    @Override
+    public User findUserById(Long userId) {
         return userRepository.findById(userId).orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
     }
 
-    public User save(final User user) {
+    @Override
+    public User makeUser(String platformId, Platform platform, String nickname, MultipartFile profileImg) throws IOException {
+        return User.builder()
+                .platformId(platformId)
+                .platform(platform)
+                .nickname(nickname)
+                .profileImg((profileImg == null) ? null : s3Service.uploadImage(profileImg)).build();
+    }
+
+    @Override
+    public User save(User user) {
         return userRepository.save(user);
     }
 }

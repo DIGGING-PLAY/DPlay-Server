@@ -11,13 +11,15 @@ public interface UserService {
 
     void updateNickname(Long userId, String nickname);
 
-    boolean existsByProviderIdAndProvider(final String providerId, final Platform platform);
+    boolean existsByProviderIdAndProvider(String providerId, Platform platform);
 
-    boolean existsByNickname(final String nickname);
+    boolean existsByNickname(String nickname);
 
-    User findUserByProviderIdAndProvider(final String providerId, Platform platform);
+    User findUserByProviderIdAndProvider(String providerId, Platform platform);
 
-    User findUserById(final Long userId);
+    User findUserById(Long userId);
 
-    User save(final User user);
+    User makeUser(String platformId, Platform platform, String nickname, MultipartFile profileImg) throws IOException;
+
+    User save(User user);
 }
