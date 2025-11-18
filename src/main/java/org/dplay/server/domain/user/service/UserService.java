@@ -17,7 +17,7 @@ public interface UserService {
 
     User findUserByProviderIdAndProvider(String providerId, Platform platform);
 
-    User findUserById(Long userId);
+    User getUserById(Long userId);
 
     User makeUser(String platformId, Platform platform, String nickname, MultipartFile profileImg) throws IOException;
 

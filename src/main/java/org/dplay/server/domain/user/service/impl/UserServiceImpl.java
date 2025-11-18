@@ -10,6 +10,7 @@ import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
 import org.dplay.server.global.util.NicknameValidator;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -17,6 +18,7 @@ import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -24,8 +26,9 @@ public class UserServiceImpl implements UserService {
     private final NicknameValidator nicknameValidator;
 
     @Override
+    @Transactional
     public void updateProfileImage(Long userId, MultipartFile profileImg) throws IOException {
-        User user = findUserById(userId);
+        User user = getUserById(userId);
 
         String profileImgUrl = (profileImg == null) ? null : profileImg.isEmpty() ? "" : s3Service.uploadImage(profileImg);
 
@@ -39,17 +42,20 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void updateNickname(Long userId, String nickname) {
-        User user = findUserById(userId);
+        User user = getUserById(userId);
 
         if (Objects.equals(user.getNickname(), nickname)) {
             return;
-        } else if (existsByNickname(nickname)) {
-            throw new DPlayException(ResponseError.RESOURCE_ALREADY_EXISTS);
-        } else {
-            nicknameValidator.validate(nickname);
-            user.updateNickname(nickname);
         }
+
+        nicknameValidator.validate(nickname);
+
+        if (existsByNickname(nickname)) {
+            throw new DPlayException(ResponseError.RESOURCE_ALREADY_EXISTS);
+        }
+        user.updateNickname(nickname);
     }
 
     @Override
@@ -68,7 +74,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User findUserById(Long userId) {
+    public User getUserById(Long userId) {
         return userRepository.findById(userId).orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
     }
 
