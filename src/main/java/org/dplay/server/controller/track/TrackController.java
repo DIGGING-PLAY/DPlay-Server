@@ -123,6 +123,11 @@ public class TrackController {
 
         TrackPreviewResultDto result = trackService.getPreview(trackId, storefront);
 
+        // 미리듣기 URL이 없는 경우 에러 반환 (지역에 따라 제공되지 않을 수 있음)
+        if (result.streamUrl() == null) {
+            throw new DPlayException(ResponseError.PREVIEW_URL_NOT_AVAILABLE);
+        }
+
         TrackPreviewResponse response = TrackPreviewResponse.from(result);
 
         return ResponseBuilder.ok(response);

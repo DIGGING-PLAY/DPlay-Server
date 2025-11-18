@@ -153,23 +153,20 @@ public class AppleMusicService {
 
     /**
      * Apple Music API를 통해 트랙 미리듣기 URL 조회
+     * 미리듣기 URL은 지역에 따라 제공되지 않을 수 있으므로 null을 반환할 수 있습니다.
      *
      * @param trackId    트랙 ID (apple:{appleMusicId} 형식)
      * @param storefront 국가 코드 (기본값: kr)
-     * @return 미리듣기 URL 정보
+     * @return 미리듣기 URL 정보 (previewUrl이 없으면 streamUrl이 null)
      */
     public MusicPreviewResult getTrackPreview(String trackId, String storefront) {
         AppleMusicTrackData trackData = fetchTrackDataFromAppleMusic(trackId, storefront);
         var attrs = trackData.attributes();
 
-        // 미리듣기 URL 추출
+        // 미리듣기 URL 추출 (없으면 null 반환)
         String previewUrl = null;
         if (attrs.previews() != null && !attrs.previews().isEmpty()) {
             previewUrl = attrs.previews().get(0).url();
-        }
-
-        if (previewUrl == null) {
-            throw new DPlayException(ResponseError.TARGET_NOT_FOUND);
         }
 
         return new MusicPreviewResult(

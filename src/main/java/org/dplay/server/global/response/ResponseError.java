@@ -26,6 +26,7 @@ public enum ResponseError {
     TARGET_NOT_FOUND(4040, "대상을 찾을 수 없습니다."),
     USER_NOT_FOUND(4041, "존재하지 않는 회원입니다."),
     QUESTION_NOT_FOUND(4042, "질문이 존재하지 않습니다."),
+    PREVIEW_URL_NOT_AVAILABLE(4043, "미리듣기 url이 없습니다."),
 
     // Method Not Allowed (405)
     METHOD_NOT_ALLOWED(4050, "잘못된 HTTP method 요청입니다."),
