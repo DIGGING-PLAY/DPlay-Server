@@ -1,20 +1,23 @@
 package org.dplay.server.domain.user.service;
 
-import lombok.RequiredArgsConstructor;
+import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.entity.User;
-import org.dplay.server.domain.user.repository.UserRepository;
-import org.dplay.server.global.exception.DPlayException;
-import org.dplay.server.global.response.ResponseError;
-import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-@Service
-@RequiredArgsConstructor
-public class UserService {
+import java.io.IOException;
 
-    private final UserRepository userRepository;
+public interface UserService {
+    void updateProfileImage(Long userId, MultipartFile profileImg) throws IOException;
 
-    public User getUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
-    }
+    void updateNickname(Long userId, String nickname);
+
+    boolean existsByProviderIdAndProvider(String providerId, Platform platform);
+
+    boolean existsByNickname(String nickname);
+
+    User findUserByProviderIdAndProvider(String providerId, Platform platform);
+
+    User getUserById(Long userId);
+
+    User makeUser(String platformId, Platform platform, String nickname, MultipartFile profileImg) throws IOException;
 }

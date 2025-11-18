@@ -10,4 +10,6 @@ public interface PostFeedService {
             String cursor,
             Integer limit
     );
+
+    PostFeedResultDto getTodayRecommendationFeed(Long userId);
 }
