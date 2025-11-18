@@ -72,7 +72,6 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = userService.makeUser(platformId, signupRequest.platform(), signupRequest.nickname(), profileImg);
-        userService.save(user);
 
         JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
         user.updateRefreshToken(tokens.refreshToken());

@@ -79,16 +79,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public User makeUser(String platformId, Platform platform, String nickname, MultipartFile profileImg) throws IOException {
-        return User.builder()
+        User user = User.builder()
                 .platformId(platformId)
                 .platform(platform)
                 .nickname(nickname)
                 .profileImg((profileImg == null) ? null : s3Service.uploadImage(profileImg)).build();
-    }
 
-    @Override
-    public User save(User user) {
         return userRepository.save(user);
     }
 }
