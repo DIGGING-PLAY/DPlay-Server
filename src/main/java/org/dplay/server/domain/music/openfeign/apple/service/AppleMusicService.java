@@ -102,48 +102,19 @@ public class AppleMusicService {
      * @return 트랙 상세 정보
      */
     public MusicTrackDetailResult getTrackDetail(String trackId, String storefront) {
-        if (storefront == null || storefront.isBlank()) {
-            storefront = "kr";
-        }
-        String developerToken = appleMusicTokenService.generateDeveloperToken();
-        String authorization = "Bearer " + developerToken;
+        AppleMusicTrackData trackData = fetchTrackDataFromAppleMusic(trackId, storefront);
+        var attrs = trackData.attributes();
+        
+        // 고해상도 이미지 URL 생성 (1024x1024)
+        String coverImg = attrs.artwork() != null ? getHighResolutionCoverImageUrl(attrs.artwork()) : null;
 
-        // trackId에서 appleMusicId 추출 (apple:{appleMusicId} 형식)
-        String appleMusicId = extractAppleMusicId(trackId);
-        if (appleMusicId == null) {
-            throw new DPlayException(ResponseError.INVALID_REQUEST_PARAMETER);
-        }
-
-        try {
-            AppleMusicTrackDetailResponse response = appleMusicFeignClient.getTrackDetail(
-                    authorization,
-                    storefront,
-                    appleMusicId
-            );
-
-            if (response == null || response.data() == null || response.data().isEmpty()) {
-                throw new DPlayException(ResponseError.TARGET_NOT_FOUND);
-            }
-
-            AppleMusicTrackData trackData = response.data().get(0);
-            var attrs = trackData.attributes();
-            // 고해상도 이미지 URL 생성 (1024x1024)
-            String coverImg = attrs.artwork() != null ? getHighResolutionCoverImageUrl(attrs.artwork()) : null;
-
-            return new MusicTrackDetailResult(
-                    trackId,
-                    attrs.name(),
-                    attrs.artistName(),
-                    coverImg,
-                    attrs.isrc()
-            );
-        } catch (DPlayException e) {
-            // DPlayException은 그대로 전파
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to get track detail from Apple Music (trackId: {})", trackId, e);
-            throw new DPlayException(ResponseError.TARGET_NOT_FOUND);
-        }
+        return new MusicTrackDetailResult(
+                trackId,
+                attrs.name(),
+                attrs.artistName(),
+                coverImg,
+                attrs.isrc()
+        );
     }
 
     /**
@@ -180,12 +151,89 @@ public class AppleMusicService {
     ) {
     }
 
+    /**
+     * Apple Music API를 통해 트랙 미리듣기 URL 조회
+     * 미리듣기 URL은 지역에 따라 제공되지 않을 수 있으므로 null을 반환할 수 있습니다.
+     *
+     * @param trackId    트랙 ID (apple:{appleMusicId} 형식)
+     * @param storefront 국가 코드 (기본값: kr)
+     * @return 미리듣기 URL 정보 (previewUrl이 없으면 streamUrl이 null)
+     */
+    public MusicPreviewResult getTrackPreview(String trackId, String storefront) {
+        AppleMusicTrackData trackData = fetchTrackDataFromAppleMusic(trackId, storefront);
+        var attrs = trackData.attributes();
+
+        // 미리듣기 URL 추출 (없으면 null 반환)
+        String previewUrl = null;
+        if (attrs.previews() != null && !attrs.previews().isEmpty()) {
+            previewUrl = attrs.previews().get(0).url();
+        }
+
+        return new MusicPreviewResult(
+                trackId,
+                previewUrl
+        );
+    }
+
+    /**
+     * Apple Music API에서 트랙 데이터를 조회하는 공통 메서드
+     *
+     * @param trackId    트랙 ID (apple:{appleMusicId} 형식)
+     * @param storefront 국가 코드 (기본값: kr)
+     * @return Apple Music 트랙 데이터
+     * @throws DPlayException 트랙을 찾을 수 없거나 요청 파라미터가 잘못된 경우
+     */
+    private AppleMusicTrackData fetchTrackDataFromAppleMusic(String trackId, String storefront) {
+        // storefront 기본값 설정
+        if (storefront == null || storefront.isBlank()) {
+            storefront = "kr";
+        }
+
+        // 토큰 생성 및 authorization 헤더 생성
+        String developerToken = appleMusicTokenService.generateDeveloperToken();
+        String authorization = "Bearer " + developerToken;
+
+        // trackId에서 appleMusicId 추출 및 검증
+        String appleMusicId = extractAppleMusicId(trackId);
+        if (appleMusicId == null) {
+            throw new DPlayException(ResponseError.INVALID_REQUEST_PARAMETER);
+        }
+
+        try {
+            // Apple Music API 호출
+            AppleMusicTrackDetailResponse response = appleMusicFeignClient.getTrackDetail(
+                    authorization,
+                    storefront,
+                    appleMusicId
+            );
+
+            // 응답 검증
+            if (response == null || response.data() == null || response.data().isEmpty()) {
+                throw new DPlayException(ResponseError.TARGET_NOT_FOUND);
+            }
+
+            return response.data().get(0);
+        } catch (DPlayException e) {
+            // DPlayException은 그대로 전파
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to fetch track data from Apple Music (trackId: {})", trackId, e);
+            throw new DPlayException(ResponseError.TARGET_NOT_FOUND);
+        }
+    }
+
     public record MusicTrackDetailResult(
             String trackId,
             String songTitle,
             String artistName,
             String coverImg,
             String isrc
+    ) {
+    }
+
+    public record MusicPreviewResult(
+            String trackId,
+            String streamUrl
     ) {
     }
 }

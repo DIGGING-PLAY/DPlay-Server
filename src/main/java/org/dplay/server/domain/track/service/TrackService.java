@@ -1,6 +1,7 @@
 package org.dplay.server.domain.track.service;
 
 import org.dplay.server.domain.track.dto.TrackDetailResultDto;
+import org.dplay.server.domain.track.dto.TrackPreviewResultDto;
 import org.dplay.server.domain.track.dto.TrackSearchResultDto;
 import org.dplay.server.domain.track.entity.Track;
 
@@ -16,4 +17,6 @@ public interface TrackService {
     TrackSearchResultDto searchTracks(String query, Integer limit, String storefront, String cursor);
 
     TrackDetailResultDto getTrackDetail(String trackId, String storefront);
+
+    TrackPreviewResultDto getPreview(String trackId, String storefront);
 }

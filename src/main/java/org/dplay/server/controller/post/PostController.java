@@ -8,9 +8,10 @@ import org.dplay.server.controller.post.dto.PostResponse;
 import org.dplay.server.controller.question.dto.PastRecommendationFeedRequest;
 import org.dplay.server.controller.question.dto.PastRecommendationFeedResponse;
 import org.dplay.server.controller.question.dto.TodayRecommendationFeedResponse;
+import org.dplay.server.domain.auth.service.AuthService;
 import org.dplay.server.domain.post.dto.PostDto;
-import org.dplay.server.domain.post.dto.PostLikeDto;
 import org.dplay.server.domain.post.dto.PostFeedResultDto;
+import org.dplay.server.domain.post.dto.PostLikeDto;
 import org.dplay.server.domain.post.service.PostFeedService;
 import org.dplay.server.domain.post.service.PostLikeService;
 import org.dplay.server.domain.post.service.PostSaveService;
@@ -29,6 +30,7 @@ public class PostController {
     private final PostLikeService postLikeService;
     private final PostSaveService postSaveService;
     private final PostFeedService postFeedService;
+    private final AuthService authService;
 
     /**
      * [ 추천글 등록 API ]
@@ -45,9 +47,7 @@ public class PostController {
             @RequestHeader("Authorization") final String accessToken,
             @Valid @RequestBody PostRequest request
     ) {
-        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
-        // 예: Long userId = authService.getUserIdFromToken(accessToken);
-        Long userId = 2L; // DB에 있는 유저 ID
+        Long userId = authService.getUserIdFromToken(accessToken);
 
         PostDto postDto = postService.createPost(
                 userId,
@@ -79,9 +79,7 @@ public class PostController {
             @RequestHeader("Authorization") final String accessToken,
             @PathVariable("postId") final long postId
     ) {
-        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
-        // 예: Long userId = authService.getUserIdFromToken(accessToken);
-        Long userId = 2L; // DB에 있는 유저 ID
+        Long userId = authService.getUserIdFromToken(accessToken);
 
         postService.deletePostByPostId(userId, postId);
         return ResponseBuilder.ok(null);
@@ -103,9 +101,7 @@ public class PostController {
             @RequestHeader("Authorization") final String accessToken,
             @PathVariable("postId") final long postId
     ) {
-        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
-        // 예: Long userId = authService.getUserIdFromToken(accessToken);
-        Long userId = 2L; // DB에 있는 유저 ID
+        Long userId = authService.getUserIdFromToken(accessToken);
 
         PostLikeDto postLikeDto = postLikeService.addLike(userId, postId);
         PostLikeResponse response = PostLikeResponse.of(postLikeDto.likeCount());
@@ -128,9 +124,7 @@ public class PostController {
             @RequestHeader("Authorization") final String accessToken,
             @PathVariable("postId") final long postId
     ) {
-        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
-        // 예: Long userId = authService.getUserIdFromToken(accessToken);
-        Long userId = 2L; // DB에 있는 유저 ID
+        Long userId = authService.getUserIdFromToken(accessToken);
 
         PostLikeDto postLikeDto = postLikeService.removeLike(userId, postId);
         PostLikeResponse response = PostLikeResponse.of(postLikeDto.likeCount());
@@ -152,9 +146,7 @@ public class PostController {
             @RequestHeader("Authorization") final String accessToken,
             @PathVariable("postId") final long postId
     ) {
-        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
-        // 예: Long userId = authService.getUserIdFromToken(accessToken);
-        Long userId = 2L; // DB에 있는 유저 ID
+        Long userId = authService.getUserIdFromToken(accessToken);
 
         postSaveService.addScrap(userId, postId);
         return ResponseBuilder.created(null);
@@ -175,9 +167,7 @@ public class PostController {
             @RequestHeader("Authorization") final String accessToken,
             @PathVariable("postId") final long postId
     ) {
-        // TODO: 추후 인증 구현 시 accessToken에서 userId 추출
-        // 예: Long userId = authService.getUserIdFromToken(accessToken);
-        Long userId = 2L; // DB에 있는 유저 ID
+        Long userId = authService.getUserIdFromToken(accessToken);
 
         postSaveService.removeScrap(userId, postId);
         return ResponseBuilder.ok(null);
@@ -186,7 +176,7 @@ public class PostController {
     /**
      * [ 과거 추천글 조회 API ]
      *
-     * @param accessToken 인증 토큰 (TODO: 인증 연동 시 userId 추출)
+     * @param accessToken 인증 토큰
      * @param questionId  질문 ID
      * @param request     커서, 페이지 사이즈 정보
      * @return PastRecommendationFeedResponse
@@ -197,7 +187,7 @@ public class PostController {
             @PathVariable("questionId") final Long questionId,
             @Valid @ModelAttribute final PastRecommendationFeedRequest request
     ) {
-        Long userId = 2L; // TODO: 추후 인증 구현 시 accessToken 에서 userId 추출
+        Long userId = authService.getUserIdFromToken(accessToken);
 
         PostFeedResultDto result = postFeedService.getPastRecommendationFeed(
                 userId,
@@ -213,14 +203,14 @@ public class PostController {
     /**
      * [ 오늘 추천글 조회 API ]
      *
-     * @param accessToken 인증 토큰 (TODO: 인증 연동 시 userId 추출)
+     * @param accessToken 인증 토큰
      * @return TodayRecommendationFeedResponse
      */
     @GetMapping("/today")
     public ResponseEntity<ApiResponse<TodayRecommendationFeedResponse>> getTodayRecommendationPosts(
             @RequestHeader("Authorization") final String accessToken
     ) {
-        Long userId = 2L; // TODO: 추후 인증 구현 시 accessToken 에서 userId 추출
+        Long userId = authService.getUserIdFromToken(accessToken);
 
         PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(userId);
 
