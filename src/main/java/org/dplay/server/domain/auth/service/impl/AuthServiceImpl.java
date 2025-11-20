@@ -1,5 +1,7 @@
 package org.dplay.server.domain.auth.service.impl;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dplay.server.controller.auth.dto.JwtTokenResponse;
@@ -9,7 +11,6 @@ import org.dplay.server.domain.auth.dto.SocialUserDto;
 import org.dplay.server.domain.auth.openfeign.apple.service.AppleService;
 import org.dplay.server.domain.auth.openfeign.kakao.service.KakaoService;
 import org.dplay.server.domain.auth.service.AuthService;
-import org.dplay.server.domain.s3.S3Service;
 import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.domain.user.service.UserService;
@@ -32,11 +33,11 @@ public class AuthServiceImpl implements AuthService {
 
     private final KakaoService kakaoService;
     private final AppleService appleService;
-    private final S3Service s3Service;
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
     private final NicknameValidator nicknameValidator;
 
+    @Override
     @Transactional
     public JwtTokenResponse login(final String providerToken, final LoginRequest loginRequest) {
         String platformId = getSocialInfo(providerToken, loginRequest.platform()).platformId();
@@ -57,6 +58,7 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    @Override
     @Transactional
     public JwtTokenResponse signup(final String providerToken, final SignupRequest signupRequest, final MultipartFile profileImg) throws IOException {
         String platformId = getSocialInfo(providerToken, signupRequest.platform()).platformId();
@@ -79,6 +81,31 @@ public class AuthServiceImpl implements AuthService {
         return tokens;
     }
 
+    @Override
+    @Transactional
+    public JwtTokenResponse reissueToken(final String refreshToken) {
+        Long userId;
+        String token = getToken(refreshToken);
+
+        try {
+            userId = jwtTokenProvider.getUserIdFromJwt(token);
+        } catch (ExpiredJwtException e) {
+            throw new DPlayException(ResponseError.EXPIRED_REFRESH_TOKEN);
+        } catch (JwtException e) {
+            throw new DPlayException(ResponseError.INVALID_REFRESH_TOKEN);
+        }
+
+        User user = userService.findByRefreshToken(getToken(refreshToken));
+        if (!userId.equals(user.getUserId())) {
+            throw new DPlayException(ResponseError.INVALID_REFRESH_TOKEN);
+        }
+
+        JwtTokenResponse tokens = jwtTokenProvider.issueTokens(userId);
+        user.updateRefreshToken(tokens.refreshToken());
+        return tokens;
+    }
+
+    @Override
     public SocialUserDto getSocialInfo(final String providerToken, final Platform platform) {
         if (platform.toString().equals("KAKAO")) {
             return kakaoService.getSocialUserInfo(providerToken);
@@ -89,7 +116,17 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    @Override
     public Long getUserIdFromToken(final String accessToken) {
-        return jwtTokenProvider.getUserIdFromJwt(accessToken.substring(Constant.BEARER_TOKEN_PREFIX.length()));
+        return jwtTokenProvider.getUserIdFromJwt(getToken(accessToken));
+    }
+
+    @Override
+    public String getToken(String token) {
+        if (token.startsWith(Constant.BEARER_TOKEN_PREFIX)) {
+            return token.substring(Constant.BEARER_TOKEN_PREFIX.length());
+        } else {
+            return token;
+        }
     }
 }

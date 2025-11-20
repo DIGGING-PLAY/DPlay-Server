@@ -74,6 +74,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User findByRefreshToken(final String refreshToken) {
+        return userRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(() -> new DPlayException(ResponseError.INVALID_REFRESH_TOKEN));
+    }
+
+    @Override
     public User getUserById(Long userId) {
         return userRepository.findById(userId).orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
     }

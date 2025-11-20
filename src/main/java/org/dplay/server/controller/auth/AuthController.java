@@ -46,4 +46,11 @@ public class AuthController {
 
         return ResponseBuilder.created(jwtTokenResponse);
     }
+
+    @PatchMapping("/token/reissue")
+    public ResponseEntity<ApiResponse<JwtTokenResponse>> reissueToken(
+            @NotNull @RequestHeader(Constant.AUTHORIZATION_HEADER) final String refreshToken
+    ) {
+        return ResponseBuilder.ok(authService.reissueToken(refreshToken));
+    }
 }
