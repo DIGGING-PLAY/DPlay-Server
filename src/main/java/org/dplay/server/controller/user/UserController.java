@@ -44,7 +44,7 @@ public class UserController {
     @PostMapping("/me/notifications")
     public ResponseEntity<ApiResponse<Void>> notification(
             @NotNull @RequestHeader(Constant.AUTHORIZATION_HEADER) final String accessToken,
-            @RequestBody NotificationRequest notificationRequest
+            @Valid @RequestBody NotificationRequest notificationRequest
     ) {
         Long userId = authService.getUserIdFromToken(accessToken);
         userService.updateNotification(userId, notificationRequest.pushOn());
