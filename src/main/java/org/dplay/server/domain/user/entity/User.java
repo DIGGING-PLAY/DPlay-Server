@@ -40,7 +40,7 @@ public class User extends BaseTimeEntity {
     private String refreshToken;
 
     @Column(nullable = false)
-    private boolean pushOptIn = false;
+    private boolean pushOn = false;
 
     @Builder
     private User(
@@ -49,18 +49,18 @@ public class User extends BaseTimeEntity {
             String platformId,
             Platform platform,
             String refreshToken,
-            boolean pushOptIn
+            boolean pushOn
     ) {
         this.nickname = nickname;
         this.profileImg = profileImg;
         this.platformId = platformId;
         this.platform = platform;
         this.refreshToken = refreshToken;
-        this.pushOptIn = pushOptIn;
+        this.pushOn = pushOn;
     }
 
-    public void updatePushOptIn(boolean pushOptIn) {
-        this.pushOptIn = pushOptIn;
+    public void updatePushOn(boolean pushOn) {
+        this.pushOn = pushOn;
     }
 
     public void updateRefreshToken(String refreshToken) {

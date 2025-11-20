@@ -17,6 +17,6 @@ public class NotificationImpl implements NotificationService {
     @Transactional
     public void updateNotification(Long userId, Boolean pushOn) {
         User user = userService.getUserById(userId);
-        user.updatePushOptIn(pushOn);
+        user.updatePushOn(pushOn);
     }
 }
