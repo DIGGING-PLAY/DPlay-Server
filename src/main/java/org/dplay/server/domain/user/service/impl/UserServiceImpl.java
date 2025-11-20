@@ -59,6 +59,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
+    public void updateNotification(Long userId, Boolean pushOn) {
+        User user = getUserById(userId);
+        user.updatePushOn(pushOn);
+    }
+
+    @Override
     public boolean existsByProviderIdAndProvider(String providerId, Platform platform) {
         return userRepository.existsByPlatformIdAndPlatform(providerId, platform);
     }

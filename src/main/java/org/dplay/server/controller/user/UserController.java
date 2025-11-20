@@ -3,6 +3,7 @@ package org.dplay.server.controller.user;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.dplay.server.controller.user.dto.ChangeProfileRequest;
+import org.dplay.server.controller.user.dto.NotificationRequest;
 import org.dplay.server.domain.auth.service.AuthService;
 import org.dplay.server.domain.user.service.UserService;
 import org.dplay.server.global.auth.constant.Constant;
@@ -38,5 +39,16 @@ public class UserController {
         }
 
         return ResponseBuilder.ok(null);
+    }
+
+    @PostMapping("/me/notifications")
+    public ResponseEntity<ApiResponse<Void>> notification(
+            @NotNull @RequestHeader(Constant.AUTHORIZATION_HEADER) final String accessToken,
+            @RequestBody NotificationRequest notificationRequest
+    ) {
+        Long userId = authService.getUserIdFromToken(accessToken);
+        userService.updateNotification(userId, notificationRequest.pushOn());
+
+        return ResponseBuilder.created(null);
     }
 }

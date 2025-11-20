@@ -11,6 +11,8 @@ public interface UserService {
 
     void updateNickname(Long userId, String nickname);
 
+    void updateNotification(Long userId, Boolean pushOn);
+
     boolean existsByProviderIdAndProvider(String providerId, Platform platform);
 
     boolean existsByNickname(String nickname);
