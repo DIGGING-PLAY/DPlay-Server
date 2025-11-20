@@ -85,9 +85,10 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public JwtTokenResponse reissueToken(final String refreshToken) {
         Long userId;
+        String token = getToken(refreshToken);
 
         try {
-            userId = jwtTokenProvider.getUserIdFromJwt(getToken(refreshToken));
+            userId = jwtTokenProvider.getUserIdFromJwt(token);
         } catch (ExpiredJwtException e) {
             throw new DPlayException(ResponseError.EXPIRED_REFRESH_TOKEN);
         } catch (JwtException e) {
