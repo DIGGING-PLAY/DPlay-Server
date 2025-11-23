@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.dplay.server.controller.post.dto.PostIdResponse;
 import org.dplay.server.controller.post.dto.PostLikeResponse;
 import org.dplay.server.controller.post.dto.PostRequest;
+import org.dplay.server.controller.post.dto.PostResponse;
 import org.dplay.server.controller.question.dto.PastRecommendationFeedRequest;
 import org.dplay.server.controller.question.dto.PastRecommendationFeedResponse;
 import org.dplay.server.controller.question.dto.TodayRecommendationFeedResponse;
@@ -12,6 +13,7 @@ import org.dplay.server.domain.auth.service.AuthService;
 import org.dplay.server.domain.post.dto.PostDto;
 import org.dplay.server.domain.post.dto.PostFeedResultDto;
 import org.dplay.server.domain.post.dto.PostLikeDto;
+import org.dplay.server.domain.post.dto.PostResultDto;
 import org.dplay.server.domain.post.service.PostFeedService;
 import org.dplay.server.domain.post.service.PostLikeService;
 import org.dplay.server.domain.post.service.PostSaveService;
@@ -215,6 +217,28 @@ public class PostController {
         PostFeedResultDto result = postFeedService.getTodayRecommendationFeed(userId);
 
         TodayRecommendationFeedResponse response = TodayRecommendationFeedResponse.from(result);
+        return ResponseBuilder.ok(response);
+    }
+
+    /**
+     * [ 추천글 상세 조회 API ]
+     *
+     * @param accessToken 인증 토큰
+     * @param postId      추천글 ID
+     * @return PostResponse
+     * @apiNote 1. 성공적으로 추천글 상세 정보를 조회했을 때
+     * / 2. postId에 해당하는 추천글이 존재하지 않을 때, DPlayException TARGET_NOT_FOUND 발생
+     * / 3. 사용자가 존재하지 않을 때, DPlayException USER_NOT_FOUND 발생
+     */
+    @GetMapping("/detail/{postId}")
+    public ResponseEntity<ApiResponse<PostResponse>> getPostDetail(
+            @RequestHeader("Authorization") final String accessToken,
+            @PathVariable("postId") final long postId
+    ) {
+        Long userId = authService.getUserIdFromToken(accessToken);
+        PostResultDto result = postService.getPostDetailByPostId(postId, userId);
+
+        PostResponse response = PostResponse.of(result);
         return ResponseBuilder.ok(response);
     }
 }

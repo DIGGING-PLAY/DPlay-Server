@@ -1,6 +1,7 @@
 package org.dplay.server.domain.post.service;
 
 import org.dplay.server.domain.post.dto.PostDto;
+import org.dplay.server.domain.post.dto.PostResultDto;
 import org.dplay.server.domain.post.entity.Post;
 
 public interface PostService {
@@ -17,4 +18,6 @@ public interface PostService {
     void decrementSaveCount(Post post);
 
     Post findByPostId(long postId);
+
+    PostResultDto getPostDetailByPostId(long postId, long userId);
 }
