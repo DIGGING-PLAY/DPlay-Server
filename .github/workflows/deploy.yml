@@ -1,18 +1,14 @@
-name: DEPLOY (release/* push)
+name: DEPLOY
 
 on:
   push:
     branches:
       - "release/**"
-      - "release"
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    concurrency:
-      group: prod-deploy
-      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v4
@@ -20,71 +16,80 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: "21"
+          distribution: 'temurin'
+          java-version: '21'
           cache: gradle
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build (skip tests if needed)
-        run: ./gradlew clean bootJar -x test
-
-      - name: Find built jar
-        id: jar
+      - name: Create application-prod.yml from Secrets
         run: |
-          set -e
-          JAR_PATH=$(ls -t build/libs/*SNAPSHOT.jar 2>/dev/null | head -n1)
-          if [ -z "$JAR_PATH" ]; then
-            JAR_PATH=$(ls -t build/libs/*.jar | head -n1)
-          fi
-          echo "Using JAR: $JAR_PATH"
-          echo "jar=$JAR_PATH" >> "$GITHUB_OUTPUT"
+          echo "${{ secrets.APPLICATION_PROD_YML }}" > ./src/main/resources/application-prod.yml
 
-      # 업로드는 releases/ 폴더로 (app.jar와 분리!)
-      - name: Upload jar to EC2 (to releases/)
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          source: ${{ steps.jar.outputs.jar }}
-          target: /home/ubuntu/dplay/releases
-          overwrite: true
+      - name: Build with Gradle
+        run: ./gradlew -x test clean bootJar
 
-      - name: Blue-Green deploy & switch
-        uses: appleboy/ssh-action@v0.1.7
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          script_stop: true
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest
+
+      - name: Deploy via SSH with Blue-Green Strategy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
           script: |
-            set -euo pipefail
+            # 로그인
+            docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
 
-            # 1) 최신 업로드 산출물 선택 → app.jar로 원자적 교체
-            NEW_JAR=$(ls -t /home/ubuntu/dplay/releases/*.jar | head -n1)
-            test -f "$NEW_JAR"
-            install -m 0644 "$NEW_JAR" /home/ubuntu/dplay/app.new.jar
-            mv -f /home/ubuntu/dplay/app.new.jar /home/ubuntu/dplay/app.jar
-
-            # 2) 현재 트래픽 포트 확인(nginx conf.d 기준)
-            CURRENT_PORT=$(grep -o '808[12]' /etc/nginx/conf.d/dplay-upstream.conf || true)
-            if [ "$CURRENT_PORT" = "8081" ]; then
-              NEXT=green   # 현재 blue(8081) → 다음 green(8082)
+            # 현재 컨테이너 상태 확인
+            if docker ps | grep dplay-container-blue; then
+              CURRENT=blue
+              NEXT=green
+              NEXT_PORT=8082
             else
-              NEXT=blue    # 현재 green(8082) → 다음 blue(8081)
+              CURRENT=green
+              NEXT=blue
+              NEXT_PORT=8081
             fi
-            echo "Next color: $NEXT"
 
-            # 3) 대기 슬롯 컨테이너 기동 + 헬스체크
-            /home/ubuntu/dplay/scripts/deploy_candidate.sh "$NEXT"
+            echo "현재 운영 중: $CURRENT → 새로 띄울 컨테이너: $NEXT (port $NEXT_PORT)"
 
-            # 4) 트래픽 전환
-            /home/ubuntu/dplay/scripts/switch.sh "$NEXT"
+            # 🧹 이전 컨테이너 중지 및 제거
+            docker stop dplay-container-$NEXT || true
+            docker rm dplay-container-$NEXT || true
 
-            # 5) 최종 스모크 테스트 (Nginx 경유)
-            curl -fsS http://127.0.0.1/api/actuator/health | grep -q '"status":"UP"'
-            echo "deployment finished"
+            # 최신 이미지 pull 및 새 컨테이너 실행
+            docker pull ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest
+            docker run -d --rm -p $NEXT_PORT:8080 --name dplay-container-$NEXT ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest
+
+            # 헬스 체크
+            for i in {1..10}; do
+              if curl -s http://localhost:$NEXT_PORT/api/actuator/health | grep '"status":"UP"'; then
+                echo "🟢 새 컨테이너 헬스 체크 통과"
+                break
+              fi
+              echo "🔁 헬스 체크 중... ($i/10)"
+              sleep 3
+            done
+
+            # Nginx 설정 전환
+            echo "🌐 Nginx 전환: $NEXT"
+            sudo cp /etc/nginx/conf.d/backup/api-$NEXT.conf /etc/nginx/conf.d/api.conf
+            sudo nginx -t
+            sudo systemctl reload nginx
+
+            # 이전 컨테이너 종료
+            docker stop dplay-container-$CURRENT || true
+
+            echo "배포 완료 at $(date '+%Y-%m-%d %H:%M:%S')"

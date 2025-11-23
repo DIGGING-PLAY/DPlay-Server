@@ -47,3 +47,10 @@ out/
 ### Application ###
 *.log
 
+### Apple Music API Keys ###
+*.p8
+
+### Redis ###
+dump.rdb
+*.rdb
+

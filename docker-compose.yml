@@ -1,3 +1,6 @@
+# 로컬 개발 환경용 docker-compose.yml
+# 사용법: ./gradlew bootJar 후 docker-compose up
+
 services:
   mysql:
     image: mysql:8.0
@@ -20,6 +23,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   app:
     build:
@@ -38,7 +42,7 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
 
       # application-local.yml의 플레이스홀더를 compose에서 채우기
-      # 👉 앱 컨테이너는 DB 컨테이너의 내부 DNS 이름(mysql)로 접속
+      # 앱 컨테이너는 DB 컨테이너의 내부 DNS 이름(mysql)로 접속
       DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/dplay_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -49,6 +53,7 @@ services:
       AWS_S3_REGION: ${AWS_S3_REGION}
       AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
       AWS_SECRET_KEY: ${AWS_SECRET_KEY}
+    restart: unless-stopped
 
 volumes:
   mysql_data:
