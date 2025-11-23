@@ -28,4 +28,12 @@ public interface PostQueryService {
             Long questionId,
             List<Long> excludePostIds
     );
+
+    long countByUser(Long userId);
+
+    List<Post> findPostsByUserDesc(
+            Long userId,
+            Long cursorPostId,
+            int limit
+    );
 }

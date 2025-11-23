@@ -102,11 +102,12 @@ public class PostFeedServiceImpl implements PostFeedService {
                 );
 
                 if (fetched.size() > pageSize) {
-                    Post last = fetched.remove(fetched.size() - 1);
-                    nextCursor = encodeCursor(last.getLikeCount(), last.getPostId());
+                    Post lastReturnedPost = fetched.get(pageSize - 1);
+                    nextCursor = encodeCursor(lastReturnedPost.getLikeCount(), lastReturnedPost.getPostId());
+                    feedPosts.addAll(fetched.subList(0, pageSize));
+                } else {
+                    feedPosts.addAll(fetched);
                 }
-
-                feedPosts.addAll(fetched);
             }
 
             if (isFirstPage) {

@@ -8,4 +8,6 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostFeedQuery
     boolean existsByQuestionQuestionIdAndUserUserId(Long questionId, Long userId);
 
     long countByQuestionQuestionId(Long questionId);
+
+    long countByUserUserId(Long userId);
 }
