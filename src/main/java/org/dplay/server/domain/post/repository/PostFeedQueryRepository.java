@@ -30,4 +30,10 @@ public interface PostFeedQueryRepository {
             Long cursorPostId,
             int limit
     );
+
+    List<Post> findSavedPostsByUserDesc(
+            Long userId,
+            Long cursorPostId,
+            int limit
+    );
 }

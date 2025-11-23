@@ -31,5 +31,13 @@ public interface PostSaveRepository extends JpaRepository<PostSave, Long> {
 
     @Query("SELECT ps.post.postId FROM PostSave ps WHERE ps.post IN :posts AND ps.user = :user")
     List<Long> findPostIdsByUserAndPosts(@Param("user") User user, @Param("posts") List<Post> posts);
+
+    /**
+     * 특정 유저가 스크랩한 PostSave의 개수를 조회합니다.
+     *
+     * @param userId 유저 ID
+     * @return 스크랩한 글 개수
+     */
+    long countByUserUserId(Long userId);
 }
 
