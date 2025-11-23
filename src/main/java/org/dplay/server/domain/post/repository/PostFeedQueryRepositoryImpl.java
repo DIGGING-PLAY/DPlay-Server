@@ -34,7 +34,7 @@ public class PostFeedQueryRepositoryImpl implements PostFeedQueryRepository {
 
         if (cursorLikeCount != null && cursorPostId != null) {
             jpql.append("AND (p.likeCount < :cursorLikeCount ")
-                    .append("OR (p.likeCount = :cursorLikeCount AND p.postId > :cursorPostId)) ");
+                    .append("OR (p.likeCount = :cursorLikeCount AND p.postId >= :cursorPostId)) ");
         }
 
         jpql.append("ORDER BY p.likeCount DESC, p.postId ASC");
@@ -52,7 +52,17 @@ public class PostFeedQueryRepositoryImpl implements PostFeedQueryRepository {
             query.setParameter("cursorPostId", cursorPostId);
         }
 
-        return query.getResultList();
+        List<Post> result = query.getResultList();
+
+        // 커서가 있고 결과가 있으면, 첫 번째 항목(커서와 같은 likeCount와 postId)을 제거
+        if (cursorLikeCount != null && cursorPostId != null && !result.isEmpty()) {
+            Post first = result.get(0);
+            if (first.getLikeCount() == cursorLikeCount && first.getPostId().equals(cursorPostId)) {
+                result = result.subList(1, result.size());
+            }
+        }
+
+        return result;
     }
 
     @Override
