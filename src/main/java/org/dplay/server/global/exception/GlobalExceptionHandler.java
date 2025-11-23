@@ -1,5 +1,6 @@
 package org.dplay.server.global.exception;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
 import org.dplay.server.global.response.ApiResponse;
 import org.dplay.server.global.response.ResponseBuilder;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
 
 @RestControllerAdvice
+@Hidden
 @Slf4j
 public class GlobalExceptionHandler {
     @ExceptionHandler(DPlayException.class)
