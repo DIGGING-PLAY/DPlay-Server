@@ -1,13 +1,16 @@
 package org.dplay.server.domain.post.service;
 
+import org.dplay.server.domain.post.dto.UserPostsResultDto;
 import org.dplay.server.domain.post.entity.Post;
 import org.dplay.server.domain.post.entity.PostSave;
+import org.dplay.server.domain.post.repository.PostRepository;
 import org.dplay.server.domain.post.repository.PostSaveRepository;
 import org.dplay.server.domain.post.service.impl.PostSaveServiceImpl;
 import org.dplay.server.domain.question.entity.Question;
 import org.dplay.server.domain.track.entity.Track;
+import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.entity.User;
-import org.dplay.server.domain.user.repository.UserRepository;
+import org.dplay.server.domain.user.service.UserService;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,9 +22,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
+import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,7 +40,9 @@ class PostSaveServiceImplTest {
     @Mock
     private PostService postService;
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
+    @Mock
+    private PostRepository postRepository;
 
     private PostSaveServiceImpl postSaveService;
 
@@ -43,7 +51,8 @@ class PostSaveServiceImplTest {
         postSaveService = new PostSaveServiceImpl(
                 postSaveRepository,
                 postService,
-                userRepository
+                postRepository,
+                userService
         );
     }
 
@@ -55,7 +64,7 @@ class PostSaveServiceImplTest {
         long postId = 1L;
 
         User user = User.builder()
-                .platform(org.dplay.server.domain.user.Platform.KAKAO)
+                .platform(Platform.KAKAO)
                 .platformId("123456")
                 .nickname("테스트유저")
                 .build();
@@ -90,7 +99,7 @@ class PostSaveServiceImplTest {
                 .build();
 
         when(postService.findByPostId(postId)).thenReturn(post);
-        when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
+        when(userService.getUserById(userId)).thenReturn(user);
         when(postSaveRepository.existsByPostAndUser(post, user)).thenReturn(false);
         when(postSaveRepository.save(any(PostSave.class))).thenReturn(postSave);
         doNothing().when(postService).incrementSaveCount(post);
@@ -121,7 +130,7 @@ class PostSaveServiceImplTest {
                 .isEqualTo(ResponseError.TARGET_NOT_FOUND);
 
         verify(postService, times(1)).findByPostId(postId);
-        verify(userRepository, never()).findById(anyLong());
+        verify(userService, never()).getUserById(anyLong());
         verify(postSaveRepository, never()).save(any(PostSave.class));
     }
 
@@ -163,7 +172,8 @@ class PostSaveServiceImplTest {
         ReflectionTestUtils.setField(post, "postId", postId);
 
         when(postService.findByPostId(postId)).thenReturn(post);
-        when(userRepository.findById(userId)).thenReturn(java.util.Optional.empty());
+        when(userService.getUserById(userId))
+                .thenThrow(new DPlayException(ResponseError.USER_NOT_FOUND));
 
         // When & Then
         assertThatThrownBy(() -> postSaveService.addScrap(userId, postId))
@@ -172,7 +182,7 @@ class PostSaveServiceImplTest {
                 .isEqualTo(ResponseError.USER_NOT_FOUND);
 
         verify(postService, times(1)).findByPostId(postId);
-        verify(userRepository, times(1)).findById(userId);
+        verify(userService, times(1)).getUserById(userId);
         verify(postSaveRepository, never()).save(any(PostSave.class));
     }
 
@@ -214,7 +224,7 @@ class PostSaveServiceImplTest {
         ReflectionTestUtils.setField(post, "postId", postId);
 
         when(postService.findByPostId(postId)).thenReturn(post);
-        when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
+        when(userService.getUserById(userId)).thenReturn(user);
         when(postSaveRepository.existsByPostAndUser(post, user)).thenReturn(true);
 
         // When & Then
@@ -270,7 +280,7 @@ class PostSaveServiceImplTest {
                 .build();
 
         when(postService.findByPostId(postId)).thenReturn(post);
-        when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
+        when(userService.getUserById(userId)).thenReturn(user);
         when(postSaveRepository.existsByPostAndUser(post, user)).thenReturn(true);
         when(postSaveRepository.findByPostAndUser(post, user)).thenReturn(java.util.Optional.of(postSave));
         doNothing().when(postSaveRepository).delete(postSave);
@@ -302,7 +312,7 @@ class PostSaveServiceImplTest {
                 .isEqualTo(ResponseError.TARGET_NOT_FOUND);
 
         verify(postService, times(1)).findByPostId(postId);
-        verify(userRepository, never()).findById(anyLong());
+        verify(userService, never()).getUserById(anyLong());
         verify(postSaveRepository, never()).delete(any(PostSave.class));
     }
 
@@ -344,7 +354,8 @@ class PostSaveServiceImplTest {
         ReflectionTestUtils.setField(post, "postId", postId);
 
         when(postService.findByPostId(postId)).thenReturn(post);
-        when(userRepository.findById(userId)).thenReturn(java.util.Optional.empty());
+        when(userService.getUserById(userId))
+                .thenThrow(new DPlayException(ResponseError.USER_NOT_FOUND));
 
         // When & Then
         assertThatThrownBy(() -> postSaveService.removeScrap(userId, postId))
@@ -353,7 +364,7 @@ class PostSaveServiceImplTest {
                 .isEqualTo(ResponseError.USER_NOT_FOUND);
 
         verify(postService, times(1)).findByPostId(postId);
-        verify(userRepository, times(1)).findById(userId);
+        verify(userService, times(1)).getUserById(userId);
         verify(postSaveRepository, never()).delete(any(PostSave.class));
     }
 
@@ -395,7 +406,7 @@ class PostSaveServiceImplTest {
         ReflectionTestUtils.setField(post, "postId", postId);
 
         when(postService.findByPostId(postId)).thenReturn(post);
-        when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
+        when(userService.getUserById(userId)).thenReturn(user);
         when(postSaveRepository.existsByPostAndUser(post, user)).thenReturn(false);
 
         // When & Then
@@ -406,6 +417,271 @@ class PostSaveServiceImplTest {
 
         verify(postSaveRepository, never()).delete(any(PostSave.class));
         verify(postService, never()).decrementSaveCount(any(Post.class));
+    }
+
+    @Test
+    @DisplayName("유저가 스크랩한 글 리스트를 정상적으로 조회한다")
+    void getUserSaves_ok() {
+        // Given
+        Long userId = 1L;
+        String cursor = null;
+        Integer limit = 20;
+
+        User user = User.builder()
+                .platform(Platform.KAKAO)
+                .platformId("123456")
+                .nickname("테스트유저")
+                .build();
+        ReflectionTestUtils.setField(user, "userId", userId);
+
+        Question question = Question.builder()
+                .title("11월 3일에 듣고 싶은 노래는?")
+                .displayDate(FIXED_DATE)
+                .postCount(0)
+                .build();
+        ReflectionTestUtils.setField(question, "questionId", 1L);
+
+        Track track1 = Track.builder()
+                .trackId("apple:track001")
+                .songTitle("노래1")
+                .artistName("아티스트1")
+                .coverImg("https://example.com/cover1.jpg")
+                .build();
+
+        Track track2 = Track.builder()
+                .trackId("apple:track002")
+                .songTitle("노래2")
+                .artistName("아티스트2")
+                .coverImg("https://example.com/cover2.jpg")
+                .build();
+
+        Post post1 = Post.builder()
+                .user(user)
+                .question(question)
+                .track(track1)
+                .content("첫 번째 스크랩")
+                .likeCount(10)
+                .saveCount(5)
+                .build();
+        ReflectionTestUtils.setField(post1, "postId", 1L);
+
+        Post post2 = Post.builder()
+                .user(user)
+                .question(question)
+                .track(track2)
+                .content("두 번째 스크랩")
+                .likeCount(5)
+                .saveCount(2)
+                .build();
+        ReflectionTestUtils.setField(post2, "postId", 2L);
+
+        when(userService.getUserById(userId)).thenReturn(user);
+        when(postSaveRepository.countByUserUserId(userId)).thenReturn(2L);
+        when(postRepository.findSavedPostsByUserDesc(userId, null, 21)).thenReturn(List.of(post1, post2));
+
+        // When
+        UserPostsResultDto result = postSaveService.getUserSaves(userId, cursor, limit);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.visibleLimit()).isEqualTo(20);
+        assertThat(result.totalCount()).isEqualTo(2L);
+        assertThat(result.nextCursor()).isNull();
+        assertThat(result.items()).hasSize(2);
+        assertThat(result.items().get(0).getPostId()).isEqualTo(1L);
+        assertThat(result.items().get(1).getPostId()).isEqualTo(2L);
+    }
+
+    @Test
+    @DisplayName("유저가 스크랩한 글 리스트 조회 시 커서를 사용한다")
+    void getUserSaves_withCursor_ok() {
+        // Given
+        Long userId = 1L;
+        String cursor = java.util.Base64.getEncoder().encodeToString("5".getBytes());
+        Integer limit = 10;
+
+        User user = User.builder()
+                .platform(Platform.KAKAO)
+                .platformId("123456")
+                .nickname("테스트유저")
+                .build();
+        ReflectionTestUtils.setField(user, "userId", userId);
+
+        Question question = Question.builder()
+                .title("11월 3일에 듣고 싶은 노래는?")
+                .displayDate(FIXED_DATE)
+                .postCount(0)
+                .build();
+        ReflectionTestUtils.setField(question, "questionId", 1L);
+
+        Track track = Track.builder()
+                .trackId("apple:track001")
+                .songTitle("노래1")
+                .artistName("아티스트1")
+                .coverImg("https://example.com/cover1.jpg")
+                .build();
+
+        Post post = Post.builder()
+                .user(user)
+                .question(question)
+                .track(track)
+                .content("스크랩")
+                .likeCount(10)
+                .saveCount(5)
+                .build();
+        ReflectionTestUtils.setField(post, "postId", 3L);
+
+        when(userService.getUserById(userId)).thenReturn(user);
+        when(postSaveRepository.countByUserUserId(userId)).thenReturn(10L);
+        when(postRepository.findSavedPostsByUserDesc(userId, 5L, 11)).thenReturn(List.of(post));
+
+        // When
+        UserPostsResultDto result = postSaveService.getUserSaves(userId, cursor, limit);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.visibleLimit()).isEqualTo(10);
+        assertThat(result.totalCount()).isEqualTo(10L);
+        assertThat(result.nextCursor()).isNull();
+        assertThat(result.items()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("유저가 스크랩한 글 리스트 조회 시 nextCursor가 생성된다")
+    void getUserSaves_withNextCursor_ok() {
+        // Given
+        Long userId = 1L;
+        String cursor = null;
+        Integer limit = 2;
+
+        User user = User.builder()
+                .platform(Platform.KAKAO)
+                .platformId("123456")
+                .nickname("테스트유저")
+                .build();
+        ReflectionTestUtils.setField(user, "userId", userId);
+
+        Question question = Question.builder()
+                .title("11월 3일에 듣고 싶은 노래는?")
+                .displayDate(FIXED_DATE)
+                .postCount(0)
+                .build();
+        ReflectionTestUtils.setField(question, "questionId", 1L);
+
+        Track track1 = Track.builder()
+                .trackId("apple:track001")
+                .songTitle("노래1")
+                .artistName("아티스트1")
+                .coverImg("https://example.com/cover1.jpg")
+                .build();
+
+        Track track2 = Track.builder()
+                .trackId("apple:track002")
+                .songTitle("노래2")
+                .artistName("아티스트2")
+                .coverImg("https://example.com/cover2.jpg")
+                .build();
+
+        Track track3 = Track.builder()
+                .trackId("apple:track003")
+                .songTitle("노래3")
+                .artistName("아티스트3")
+                .coverImg("https://example.com/cover3.jpg")
+                .build();
+
+        Post post1 = Post.builder()
+                .user(user)
+                .question(question)
+                .track(track1)
+                .content("첫 번째 스크랩")
+                .likeCount(10)
+                .saveCount(5)
+                .build();
+        ReflectionTestUtils.setField(post1, "postId", 1L);
+
+        Post post2 = Post.builder()
+                .user(user)
+                .question(question)
+                .track(track2)
+                .content("두 번째 스크랩")
+                .likeCount(5)
+                .saveCount(2)
+                .build();
+        ReflectionTestUtils.setField(post2, "postId", 2L);
+
+        Post post3 = Post.builder()
+                .user(user)
+                .question(question)
+                .track(track3)
+                .content("세 번째 스크랩")
+                .likeCount(3)
+                .saveCount(1)
+                .build();
+        ReflectionTestUtils.setField(post3, "postId", 3L);
+
+        when(userService.getUserById(userId)).thenReturn(user);
+        when(postSaveRepository.countByUserUserId(userId)).thenReturn(10L);
+        when(postRepository.findSavedPostsByUserDesc(userId, null, 3)).thenReturn(List.of(post1, post2, post3));
+
+        // When
+        UserPostsResultDto result = postSaveService.getUserSaves(userId, cursor, limit);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.visibleLimit()).isEqualTo(2);
+        assertThat(result.totalCount()).isEqualTo(10L);
+        assertThat(result.nextCursor()).isNotNull();
+        assertThat(result.items()).hasSize(2);
+        assertThat(result.items().get(0).getPostId()).isEqualTo(1L);
+        assertThat(result.items().get(1).getPostId()).isEqualTo(2L);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 유저의 스크랩한 글 리스트를 조회하려고 하면 USER_NOT_FOUND 예외를 던진다")
+    void getUserSaves_userNotFound_throws() {
+        // Given
+        Long userId = 999L;
+        String cursor = null;
+        Integer limit = 20;
+
+        when(userService.getUserById(userId))
+                .thenThrow(new DPlayException(ResponseError.USER_NOT_FOUND));
+
+        // When & Then
+        assertThatThrownBy(() -> postSaveService.getUserSaves(userId, cursor, limit))
+                .isInstanceOf(DPlayException.class)
+                .extracting("responseError")
+                .isEqualTo(ResponseError.USER_NOT_FOUND);
+
+        verify(userService, times(1)).getUserById(userId);
+        verify(postSaveRepository, never()).countByUserUserId(any());
+    }
+
+    @Test
+    @DisplayName("잘못된 커서를 사용하면 INVALID_REQUEST_PARAMETER 예외를 던진다")
+    void getUserSaves_invalidCursor_throws() {
+        // Given
+        Long userId = 1L;
+        String invalidCursor = "invalid_cursor";
+        Integer limit = 20;
+
+        User user = User.builder()
+                .platform(Platform.KAKAO)
+                .platformId("123456")
+                .nickname("테스트유저")
+                .build();
+        ReflectionTestUtils.setField(user, "userId", userId);
+
+        when(userService.getUserById(userId)).thenReturn(user);
+
+        // When & Then
+        assertThatThrownBy(() -> postSaveService.getUserSaves(userId, invalidCursor, limit))
+                .isInstanceOf(DPlayException.class)
+                .extracting("responseError")
+                .isEqualTo(ResponseError.INVALID_REQUEST_PARAMETER);
+
+        verify(userService, times(1)).getUserById(userId);
+        verify(postSaveRepository, never()).countByUserUserId(any());
     }
 }
 
