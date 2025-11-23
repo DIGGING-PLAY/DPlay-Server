@@ -1,15 +1,22 @@
 package org.dplay.server.domain.post.service;
 
 import org.dplay.server.domain.post.dto.PostDto;
+import org.dplay.server.domain.post.dto.PostLikeResultDto;
+import org.dplay.server.domain.post.dto.PostResultDto;
 import org.dplay.server.domain.post.entity.Post;
+import org.dplay.server.domain.post.repository.PostLikeRepository;
 import org.dplay.server.domain.post.repository.PostRepository;
+import org.dplay.server.domain.post.repository.PostSaveRepository;
 import org.dplay.server.domain.post.service.impl.PostServiceImpl;
 import org.dplay.server.domain.question.entity.Question;
+import org.dplay.server.domain.question.service.QuestionEditorPickService;
 import org.dplay.server.domain.question.service.QuestionService;
+import org.dplay.server.domain.track.dto.TrackDetailResultDto;
 import org.dplay.server.domain.track.entity.Track;
 import org.dplay.server.domain.track.service.TrackService;
+import org.dplay.server.domain.user.dto.UserDetailResultDto;
 import org.dplay.server.domain.user.entity.User;
-import org.dplay.server.domain.user.repository.UserRepository;
+import org.dplay.server.domain.user.service.UserService;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,11 +45,17 @@ class PostServiceImplTest {
     @Mock
     private PostRepository postRepository;
     @Mock
+    private PostLikeRepository postLikeRepository;
+    @Mock
+    private PostSaveRepository postSaveRepository;
+    @Mock
+    private QuestionEditorPickService questionEditorPickService;
+    @Mock
     private TrackService trackService;
     @Mock
     private QuestionService questionService;
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     private PostServiceImpl postService;
 
@@ -51,10 +64,13 @@ class PostServiceImplTest {
         Clock fixedClock = Clock.fixed(FIXED_DATE.atStartOfDay(ZONE).toInstant(), ZONE);
         postService = new PostServiceImpl(
                 postRepository,
+                postLikeRepository,
+                postSaveRepository,
+                questionEditorPickService,
                 trackService,
                 questionService,
-                userRepository,
-                fixedClock
+                fixedClock,
+                userService
         );
     }
 
@@ -102,7 +118,7 @@ class PostServiceImplTest {
         ReflectionTestUtils.setField(savedPost, "postId", 1L);
 
         when(questionService.getQuestionByDate(FIXED_DATE)).thenReturn(question);
-        when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(user));
+        when(userService.getUserById(1L)).thenReturn(user);
         when(trackService.createTrackByPost(trackId, songTitle, artistName, coverImg, isrc)).thenReturn(track);
         when(postRepository.save(any(Post.class))).thenReturn(savedPost);
 
@@ -159,7 +175,7 @@ class PostServiceImplTest {
         ReflectionTestUtils.setField(savedPost, "postId", 1L);
 
         when(questionService.getQuestionByDate(FIXED_DATE)).thenReturn(question);
-        when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(user));
+        when(userService.getUserById(1L)).thenReturn(user);
         when(trackService.createTrackByPost(trackId, songTitle, artistName, coverImg, isrc)).thenReturn(newTrack);
         when(postRepository.save(any(Post.class))).thenReturn(savedPost);
 
@@ -213,7 +229,7 @@ class PostServiceImplTest {
         ReflectionTestUtils.setField(question, "questionId", 1L);
 
         when(questionService.getQuestionByDate(FIXED_DATE)).thenReturn(question);
-        when(userRepository.findById(1L)).thenReturn(java.util.Optional.empty());
+        when(userService.getUserById(1L)).thenThrow(new DPlayException(ResponseError.USER_NOT_FOUND));
 
         // When & Then
         assertThatThrownBy(() -> postService.createPost(1L, trackId, songTitle, artistName, coverImg, isrc, content))

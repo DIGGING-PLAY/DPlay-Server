@@ -94,7 +94,8 @@ public class PostLikeServiceImpl implements PostLikeService {
      * @param user User 엔티티
      * @return 좋아요를 눌렀으면 true, 아니면 false
      */
-    private boolean isLiked(Post post, User user) {
+    @Override
+    public boolean isLiked(Post post, User user) {
         return postLikeRepository.existsByPostAndUser(post, user);
     }
 }

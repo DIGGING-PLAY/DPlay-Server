@@ -109,7 +109,6 @@ class TodayRecommendationFeedResponseTest {
                 .profileImg("profile" + postId)
                 .platformId("platform" + postId)
                 .platform(Platform.KAKAO)
-                .email("user" + postId + "@example.com")
                 .build();
 
         Post post = Post.builder()

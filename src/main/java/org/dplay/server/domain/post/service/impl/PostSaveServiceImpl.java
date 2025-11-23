@@ -91,7 +91,8 @@ public class PostSaveServiceImpl implements PostSaveService {
      * @param user User 엔티티
      * @return 스크랩했으면 true, 아니면 false
      */
-    private boolean isSaved(Post post, User user) {
+    @Override
+    public boolean isSaved(Post post, User user) {
         return postSaveRepository.existsByPostAndUser(post, user);
     }
 }
