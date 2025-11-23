@@ -25,7 +25,13 @@ jobs:
 
       - name: Create application-prod.yml from Secrets
         run: |
+          mkdir -p ./src/main/resources
           echo "${{ secrets.APPLICATION_PROD_YML }}" > ./src/main/resources/application-prod.yml
+
+      - name: Create Apple Music private key file from Secrets
+        run: |
+          mkdir -p ./src/main/resources
+          echo "${{ secrets.APPLE_MUSIC_PRIVATE_KEY }}" > ./src/main/resources/AuthKey_B4ZKW7CJ8U.p8
 
       - name: Build with Gradle
         run: ./gradlew -x test clean bootJar
