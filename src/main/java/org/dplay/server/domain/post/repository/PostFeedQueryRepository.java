@@ -24,4 +24,10 @@ public interface PostFeedQueryRepository {
             Long questionId,
             List<Long> excludePostIds
     );
+
+    List<Post> findPostsByUserDesc(
+            Long userId,
+            Long cursorPostId,
+            int limit
+    );
 }

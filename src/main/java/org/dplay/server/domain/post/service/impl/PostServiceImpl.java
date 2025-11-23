@@ -5,10 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.dplay.server.domain.post.dto.PostDto;
 import org.dplay.server.domain.post.dto.PostLikeResultDto;
 import org.dplay.server.domain.post.dto.PostResultDto;
+import org.dplay.server.domain.post.dto.UserPostsResultDto;
 import org.dplay.server.domain.post.entity.Post;
 import org.dplay.server.domain.post.repository.PostLikeRepository;
 import org.dplay.server.domain.post.repository.PostRepository;
 import org.dplay.server.domain.post.repository.PostSaveRepository;
+import org.dplay.server.domain.post.service.PostQueryService;
 import org.dplay.server.domain.post.service.PostService;
 import org.dplay.server.domain.question.entity.Question;
 import org.dplay.server.domain.question.service.QuestionEditorPickService;
@@ -24,8 +26,12 @@ import org.dplay.server.global.response.ResponseError;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -36,12 +42,15 @@ public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
     private final PostSaveRepository postSaveRepository;
+    private final PostQueryService postQueryService;
     private final QuestionEditorPickService questionEditorPickService;
     private final TrackService trackService;
     private final QuestionService questionService;
     private final Clock clock;
     private final UserService userService;
     private static final String DEFAULT_STOREFRONT = "kr";
+    private static final int DEFAULT_LIMIT = 20;
+    private static final int MAX_LIMIT = 100;
 
     @Override
     @Transactional
@@ -160,6 +169,63 @@ public class PostServiceImpl implements PostService {
         if (!post.getUser().getUserId().equals(userId)) {
             throw new DPlayException(ResponseError.FORBIDDEN_RESOURCE);
         }
+    }
+
+    @Override
+    public UserPostsResultDto getUserPosts(Long userId, String cursor, Integer limit) {
+        userService.getUserById(userId);
+
+        int visibleLimit = determineLimit(limit);
+
+        Long cursorPostId = decodeCursor(cursor);
+
+        long totalCount = postQueryService.countByUser(userId);
+
+        int fetchSize = visibleLimit + 1;
+        List<Post> fetched = postQueryService.findPostsByUserDesc(userId, cursorPostId, fetchSize);
+
+        String nextCursor = null;
+        List<Post> resultPosts;
+        if (fetched.size() > visibleLimit) {
+            Post lastReturnedPost = fetched.get(visibleLimit - 1);
+            nextCursor = encodeCursor(lastReturnedPost.getPostId());
+            resultPosts = new ArrayList<>(fetched.subList(0, visibleLimit));
+        } else {
+            resultPosts = fetched;
+        }
+
+        return new UserPostsResultDto(
+                visibleLimit,
+                totalCount,
+                nextCursor,
+                resultPosts
+        );
+    }
+
+    private int determineLimit(Integer requestedLimit) {
+        if (requestedLimit == null) {
+            return DEFAULT_LIMIT;
+        }
+        return Math.max(1, Math.min(requestedLimit, MAX_LIMIT));
+    }
+
+    private Long decodeCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+
+        try {
+            String decoded = new String(Base64.getDecoder().decode(cursor), StandardCharsets.UTF_8);
+            return Long.parseLong(decoded);
+        } catch (Exception e) {
+            log.warn("Invalid cursor received: {}", cursor, e);
+            throw new DPlayException(ResponseError.INVALID_REQUEST_PARAMETER);
+        }
+    }
+
+    private String encodeCursor(long postId) {
+        String rawCursor = String.valueOf(postId);
+        return Base64.getEncoder().encodeToString(rawCursor.getBytes(StandardCharsets.UTF_8));
     }
 }
 

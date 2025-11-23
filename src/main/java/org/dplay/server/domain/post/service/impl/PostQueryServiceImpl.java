@@ -50,4 +50,18 @@ public class PostQueryServiceImpl implements PostQueryService {
     public List<Post> findAllFeedPosts(Long questionId, List<Long> excludePostIds) {
         return postRepository.findAllFeedPosts(questionId, excludePostIds);
     }
+
+    @Override
+    public long countByUser(Long userId) {
+        return postRepository.countByUserUserId(userId);
+    }
+
+    @Override
+    public List<Post> findPostsByUserDesc(
+            Long userId,
+            Long cursorPostId,
+            int limit
+    ) {
+        return postRepository.findPostsByUserDesc(userId, cursorPostId, limit);
+    }
 }
