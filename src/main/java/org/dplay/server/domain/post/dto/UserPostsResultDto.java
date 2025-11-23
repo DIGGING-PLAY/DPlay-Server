@@ -10,4 +10,14 @@ public record UserPostsResultDto(
         String nextCursor,
         List<Post> items
 ) {
+    public static UserPostsResultDto from(
+            int visibleLimit,
+            long totalCount,
+            String nextCursor,
+            List<Post> items
+    ) {
+        return new UserPostsResultDto(
+                visibleLimit, totalCount, nextCursor, items
+        );
+    }
 }
