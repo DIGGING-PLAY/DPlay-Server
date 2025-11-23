@@ -2,9 +2,9 @@ package org.dplay.server.controller.post;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.dplay.server.controller.post.dto.PostIdResponse;
 import org.dplay.server.controller.post.dto.PostLikeResponse;
 import org.dplay.server.controller.post.dto.PostRequest;
-import org.dplay.server.controller.post.dto.PostResponse;
 import org.dplay.server.controller.question.dto.PastRecommendationFeedRequest;
 import org.dplay.server.controller.question.dto.PastRecommendationFeedResponse;
 import org.dplay.server.controller.question.dto.TodayRecommendationFeedResponse;
@@ -43,7 +43,7 @@ public class PostController {
      * / 3. 사용자가 존재하지 않을 때, DPlayException USER_NOT_FOUND 발생
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<PostResponse>> createPost(
+    public ResponseEntity<ApiResponse<PostIdResponse>> createPost(
             @RequestHeader("Authorization") final String accessToken,
             @Valid @RequestBody PostRequest request
     ) {
@@ -59,7 +59,7 @@ public class PostController {
                 request.content()
         );
 
-        PostResponse response = PostResponse.of(postDto.postId());
+        PostIdResponse response = PostIdResponse.of(postDto.postId());
         return ResponseBuilder.created(response);
     }
 
