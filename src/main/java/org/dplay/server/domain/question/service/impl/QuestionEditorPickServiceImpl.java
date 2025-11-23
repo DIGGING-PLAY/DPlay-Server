@@ -1,6 +1,7 @@
 package org.dplay.server.domain.question.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.dplay.server.domain.post.entity.Post;
 import org.dplay.server.domain.question.entity.QuestionEditorPick;
 import org.dplay.server.domain.question.repository.QuestionEditorPickRepository;
 import org.dplay.server.domain.question.service.QuestionEditorPickService;
@@ -19,5 +20,10 @@ public class QuestionEditorPickServiceImpl implements QuestionEditorPickService 
     @Override
     public List<QuestionEditorPick> getOrderedEditorPicks(Long questionId) {
         return questionEditorPickRepository.findByQuestionQuestionIdOrderByPositionAsc(questionId);
+    }
+
+    @Override
+    public boolean existsByPost(Post post) {
+        return questionEditorPickRepository.existsByPost(post);
     }
 }
