@@ -1,5 +1,6 @@
 package org.dplay.server.domain.post.service;
 
+import org.dplay.server.domain.post.dto.UserPostsResultDto;
 import org.dplay.server.domain.post.entity.Post;
 import org.dplay.server.domain.user.entity.User;
 
@@ -25,5 +26,6 @@ public interface PostSaveService {
     List<Long> findScrappedPostIds(User user, List<Post> posts);
 
     boolean isSaved(Post post, User user);
-}
 
+    UserPostsResultDto getUserSaves(Long userId, String cursor, Integer limit);
+}

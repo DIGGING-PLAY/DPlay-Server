@@ -2,12 +2,10 @@ package org.dplay.server.controller.user;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.dplay.server.controller.user.dto.ChangeProfileRequest;
-import org.dplay.server.controller.user.dto.NotificationRequest;
-import org.dplay.server.controller.user.dto.UserPostsRequest;
-import org.dplay.server.controller.user.dto.UserPostsResponse;
+import org.dplay.server.controller.user.dto.*;
 import org.dplay.server.domain.auth.service.AuthService;
 import org.dplay.server.domain.post.dto.UserPostsResultDto;
+import org.dplay.server.domain.post.service.PostSaveService;
 import org.dplay.server.domain.post.service.PostService;
 import org.dplay.server.domain.user.service.UserService;
 import org.dplay.server.global.auth.constant.Constant;
@@ -27,6 +25,7 @@ public class UserController {
 
     private final UserService userService;
     private final AuthService authService;
+    private final PostSaveService postSaveService;
     private final PostService postService;
 
     @PatchMapping("/me")
@@ -84,6 +83,35 @@ public class UserController {
         boolean isHost = userId.equals(currentUserId);
 
         UserPostsResponse response = UserPostsResponse.from(result, isHost);
+
+        return ResponseBuilder.ok(response);
+    }
+
+    /**
+     * [ 유저가 스크랩한 글 리스트 조회 API ]
+     *
+     * @param accessToken 인증 토큰
+     * @param userId      유저 ID
+     * @param request     커서, 페이지 사이즈 정보
+     * @return UserSavesResponse
+     * @apiNote 1. 성공적으로 유저가 스크랩한 글 리스트를 조회했을 때
+     * / 2. userId에 해당하는 유저가 존재하지 않을 때, DPlayException USER_NOT_FOUND 발생
+     */
+    @GetMapping("/{userId}/scraps")
+    public ResponseEntity<ApiResponse<UserSavesResponse>> getUserSaves(
+            @NotNull @RequestHeader(Constant.AUTHORIZATION_HEADER) final String accessToken,
+            @PathVariable("userId") final Long userId,
+            @Valid @ModelAttribute final UserSavesRequest request
+    ) {
+        authService.getUserIdFromToken(accessToken);
+
+        UserPostsResultDto result = postSaveService.getUserSaves(
+                userId,
+                request.cursor(),
+                request.limit()
+        );
+
+        UserSavesResponse response = UserSavesResponse.from(result);
 
         return ResponseBuilder.ok(response);
     }

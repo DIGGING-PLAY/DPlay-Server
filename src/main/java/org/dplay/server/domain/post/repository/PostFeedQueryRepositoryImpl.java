@@ -143,4 +143,32 @@ public class PostFeedQueryRepositoryImpl implements PostFeedQueryRepository {
 
         return query.getResultList();
     }
+
+    @Override
+    public List<Post> findSavedPostsByUserDesc(
+            Long userId,
+            Long cursorPostId,
+            int limit
+    ) {
+        StringBuilder jpql = new StringBuilder("SELECT ps.post FROM PostSave ps ");
+        jpql.append("JOIN FETCH ps.post.user u ");
+        jpql.append("JOIN FETCH ps.post.track t ");
+        jpql.append("WHERE ps.user.userId = :userId ");
+
+        if (cursorPostId != null) {
+            jpql.append("AND ps.post.postId < :cursorPostId ");
+        }
+
+        jpql.append("ORDER BY ps.post.postId DESC");
+
+        TypedQuery<Post> query = entityManager.createQuery(jpql.toString(), Post.class)
+                .setParameter("userId", userId)
+                .setMaxResults(limit);
+
+        if (cursorPostId != null) {
+            query.setParameter("cursorPostId", cursorPostId);
+        }
+
+        return query.getResultList();
+    }
 }

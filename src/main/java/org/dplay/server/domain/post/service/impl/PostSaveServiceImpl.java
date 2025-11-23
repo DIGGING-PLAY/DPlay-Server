@@ -2,19 +2,24 @@ package org.dplay.server.domain.post.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dplay.server.domain.post.dto.UserPostsResultDto;
 import org.dplay.server.domain.post.entity.Post;
 import org.dplay.server.domain.post.entity.PostSave;
+import org.dplay.server.domain.post.repository.PostRepository;
 import org.dplay.server.domain.post.repository.PostSaveRepository;
 import org.dplay.server.domain.post.service.PostSaveService;
 import org.dplay.server.domain.post.service.PostService;
 import org.dplay.server.domain.user.entity.User;
-import org.dplay.server.domain.user.repository.UserRepository;
+import org.dplay.server.domain.user.service.UserService;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -28,16 +33,17 @@ public class PostSaveServiceImpl implements PostSaveService {
 
     private final PostSaveRepository postSaveRepository;
     private final PostService postService;
-    private final UserRepository userRepository;
+    private final PostRepository postRepository;
+    private final UserService userService;
+    private static final int DEFAULT_LIMIT = 20;
+    private static final int MAX_LIMIT = 100;
 
     @Override
     @Transactional
     public void addScrap(final long userId, final long postId) {
         Post post = postService.findByPostId(postId);
 
-        // User 조회 (TODO: 추후 UserService 구현 시 UserService.getUser(userId)로 변경)
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
+        User user = userService.getUserById(userId);
 
         if (isSaved(post, user)) {
             throw new DPlayException(ResponseError.RESOURCE_ALREADY_EXISTS);
@@ -59,9 +65,7 @@ public class PostSaveServiceImpl implements PostSaveService {
     public void removeScrap(final long userId, final long postId) {
         Post post = postService.findByPostId(postId);
 
-        // User 조회 (TODO: 추후 UserService 구현 시 UserService.getUser(userId)로 변경)
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
+        User user = userService.getUserById(userId);
 
         if (!isSaved(post, user)) {
             throw new DPlayException(ResponseError.TARGET_NOT_FOUND);
@@ -94,6 +98,63 @@ public class PostSaveServiceImpl implements PostSaveService {
     @Override
     public boolean isSaved(Post post, User user) {
         return postSaveRepository.existsByPostAndUser(post, user);
+    }
+
+    @Override
+    public UserPostsResultDto getUserSaves(Long userId, String cursor, Integer limit) {
+        userService.getUserById(userId);
+
+        int visibleLimit = determineLimit(limit);
+
+        Long cursorPostId = decodeCursor(cursor);
+
+        long totalCount = postSaveRepository.countByUserUserId(userId);
+
+        int fetchSize = visibleLimit + 1;
+        List<Post> fetched = postRepository.findSavedPostsByUserDesc(userId, cursorPostId, fetchSize);
+
+        String nextCursor = null;
+        List<Post> resultPosts;
+        if (fetched.size() > visibleLimit) {
+            Post lastReturnedPost = fetched.get(visibleLimit - 1);
+            nextCursor = encodeCursor(lastReturnedPost.getPostId());
+            resultPosts = new ArrayList<>(fetched.subList(0, visibleLimit));
+        } else {
+            resultPosts = fetched;
+        }
+
+        return UserPostsResultDto.from(
+                visibleLimit,
+                totalCount,
+                nextCursor,
+                resultPosts
+        );
+    }
+
+    private int determineLimit(Integer requestedLimit) {
+        if (requestedLimit == null) {
+            return DEFAULT_LIMIT;
+        }
+        return Math.max(1, Math.min(requestedLimit, MAX_LIMIT));
+    }
+
+    private Long decodeCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+
+        try {
+            String decoded = new String(Base64.getDecoder().decode(cursor), StandardCharsets.UTF_8);
+            return Long.parseLong(decoded);
+        } catch (Exception e) {
+            log.warn("Invalid cursor received: {}", cursor, e);
+            throw new DPlayException(ResponseError.INVALID_REQUEST_PARAMETER);
+        }
+    }
+
+    private String encodeCursor(long postId) {
+        String rawCursor = String.valueOf(postId);
+        return Base64.getEncoder().encodeToString(rawCursor.getBytes(StandardCharsets.UTF_8));
     }
 }
 
