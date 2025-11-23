@@ -1,3 +1,6 @@
+# 로컬 개발 환경용 docker-compose.yml
+# 사용법: ./gradlew bootJar 후 docker-compose up
+
 services:
   mysql:
     image: mysql:8.0
@@ -20,6 +23,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   app:
     build:
@@ -49,6 +53,7 @@ services:
       AWS_S3_REGION: ${AWS_S3_REGION}
       AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
       AWS_SECRET_KEY: ${AWS_SECRET_KEY}
+    restart: unless-stopped
 
 volumes:
   mysql_data:
