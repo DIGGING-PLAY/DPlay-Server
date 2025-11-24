@@ -1,6 +1,7 @@
 package org.dplay.server.domain.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.dplay.server.domain.post.service.PostService;
 import org.dplay.server.domain.s3.S3Service;
 import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.entity.User;
@@ -63,6 +64,12 @@ public class UserServiceImpl implements UserService {
     public void updateNotification(Long userId, Boolean pushOn) {
         User user = getUserById(userId);
         user.updatePushOn(pushOn);
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(Long userId) {
+        userRepository.deleteById(userId);
     }
 
     @Override

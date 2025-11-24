@@ -13,6 +13,8 @@ public interface UserService {
 
     void updateNotification(Long userId, Boolean pushOn);
 
+    void deleteUser(Long userId);
+
     boolean existsByProviderIdAndProvider(String providerId, Platform platform);
 
     boolean existsByNickname(String nickname);
