@@ -66,6 +66,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
+    public void removeRefreshToken(Long userId) {
+        User user = getUserById(userId);
+
+        user.updateRefreshToken(null);
+    }
+
+    @Override
     public boolean existsByProviderIdAndProvider(String providerId, Platform platform) {
         return userRepository.existsByPlatformIdAndPlatform(providerId, platform);
     }

@@ -12,6 +12,8 @@ import java.io.IOException;
 public interface AuthService {
     JwtTokenResponse login(String providerToken, LoginRequest loginRequest);
 
+    void logout(String accessToken);
+
     JwtTokenResponse signup(String providerToken, SignupRequest signupRequest, MultipartFile profileImg) throws IOException;
 
     JwtTokenResponse reissueToken(String refreshToken);

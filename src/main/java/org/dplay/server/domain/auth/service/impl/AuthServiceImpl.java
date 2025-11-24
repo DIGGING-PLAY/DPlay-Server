@@ -60,6 +60,14 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    public void logout(String accessToken) {
+        Long userId = getUserIdFromToken(accessToken);
+
+        userService.removeRefreshToken(userId);
+    }
+
+    @Override
+    @Transactional
     public JwtTokenResponse signup(final String providerToken, final SignupRequest signupRequest, final MultipartFile profileImg) throws IOException {
         String platformId = getSocialInfo(providerToken, signupRequest.platform()).platformId();
 
