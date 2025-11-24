@@ -1,7 +1,6 @@
 package org.dplay.server.domain.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.dplay.server.domain.post.service.PostService;
 import org.dplay.server.domain.s3.S3Service;
 import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.entity.User;
