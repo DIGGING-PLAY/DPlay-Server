@@ -7,10 +7,13 @@ import org.dplay.server.domain.auth.service.AuthService;
 import org.dplay.server.domain.post.dto.UserPostsResultDto;
 import org.dplay.server.domain.post.service.PostSaveService;
 import org.dplay.server.domain.post.service.PostService;
+import org.dplay.server.domain.user.dto.UserProfileDto;
 import org.dplay.server.domain.user.service.UserService;
 import org.dplay.server.global.auth.constant.Constant;
+import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ApiResponse;
 import org.dplay.server.global.response.ResponseBuilder;
+import org.dplay.server.global.response.ResponseError;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,6 +30,24 @@ public class UserController {
     private final AuthService authService;
     private final PostSaveService postSaveService;
     private final PostService postService;
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfile(
+            @NotNull @RequestHeader("Authorization") final String accessToken,
+            @PathVariable String userId
+    ) {
+        if (userId == null || userId.trim().isEmpty()) {
+            throw new DPlayException(ResponseError.INVALID_REQUEST_PARAMETER);
+        }
+
+        Long id = Long.parseLong(userId);
+
+        Long authorizationUserId = authService.getUserIdFromToken(accessToken);
+        UserProfileDto userProfileDto = userService.getUserProfile(id, authorizationUserId);
+        UserProfileResponse response = UserProfileResponse.from(userProfileDto);
+
+        return ResponseBuilder.ok(response);
+    }
 
     @PatchMapping("/me")
     public ResponseEntity<ApiResponse<Void>> changeProfile(
