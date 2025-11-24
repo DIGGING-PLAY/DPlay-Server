@@ -37,7 +37,7 @@ public class KakaoServiceImpl implements KakaoService {
     @Override
     public void unlinkKakaoUser(String providerId) {
         kakaoFeignClient.unlinkUser(
-                "kakaoAK" + adminKey,
+                "KakaoAK " + adminKey,
                 "user_id",
                 Long.valueOf(providerId)
         );
