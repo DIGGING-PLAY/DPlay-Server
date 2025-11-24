@@ -39,5 +39,7 @@ public interface PostSaveRepository extends JpaRepository<PostSave, Long> {
      * @return 스크랩한 글 개수
      */
     long countByUserUserId(Long userId);
+
+    void deleteAllByUser(User user);
 }
 
