@@ -11,4 +11,6 @@ import org.springframework.stereotype.Service;
 
 public interface KakaoService {
     SocialUserDto getSocialUserInfo(String providerToken);
+
+    void unlinkKakaoUser(final String providerId);
 }
