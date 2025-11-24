@@ -3,6 +3,7 @@ package org.dplay.server.domain.user.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.dplay.server.domain.s3.S3Service;
 import org.dplay.server.domain.user.Platform;
+import org.dplay.server.domain.user.dto.NotificationDto;
 import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.domain.user.repository.UserRepository;
 import org.dplay.server.domain.user.service.UserService;
@@ -63,6 +64,13 @@ public class UserServiceImpl implements UserService {
     public void updateNotification(Long userId, Boolean pushOn) {
         User user = getUserById(userId);
         user.updatePushOn(pushOn);
+    }
+
+    @Override
+    public NotificationDto getNotification(Long userId) {
+        User user = getUserById(userId);
+
+        return NotificationDto.from(user);
     }
 
     @Override
