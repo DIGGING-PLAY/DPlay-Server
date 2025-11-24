@@ -47,6 +47,15 @@ public class AuthController {
         return ResponseBuilder.created(jwtTokenResponse);
     }
 
+    @DeleteMapping("/withdraw")
+    public ResponseEntity<ApiResponse<Void>> withdraw(
+            @NotNull @RequestHeader(Constant.AUTHORIZATION_HEADER) final String accessToken
+    ) {
+        authService.withdraw(accessToken);
+
+        return ResponseBuilder.ok(null);
+    }
+
     @PatchMapping("/token/reissue")
     public ResponseEntity<ApiResponse<JwtTokenResponse>> reissueToken(
             @NotNull @RequestHeader(Constant.AUTHORIZATION_HEADER) final String refreshToken
