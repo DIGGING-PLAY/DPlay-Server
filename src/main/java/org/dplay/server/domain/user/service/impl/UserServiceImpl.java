@@ -1,8 +1,12 @@
 package org.dplay.server.domain.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.dplay.server.domain.post.service.PostQueryService;
 import org.dplay.server.domain.s3.S3Service;
 import org.dplay.server.domain.user.Platform;
+import org.dplay.server.domain.user.dto.NotificationDto;
+import org.dplay.server.domain.user.dto.UserDetailResultDto;
+import org.dplay.server.domain.user.dto.UserProfileDto;
 import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.domain.user.repository.UserRepository;
 import org.dplay.server.domain.user.service.UserService;
@@ -23,6 +27,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final S3Service s3Service;
+    private final PostQueryService postQueryService;
     private final NicknameValidator nicknameValidator;
 
     @Override
@@ -63,6 +68,27 @@ public class UserServiceImpl implements UserService {
     public void updateNotification(Long userId, Boolean pushOn) {
         User user = getUserById(userId);
         user.updatePushOn(pushOn);
+    }
+
+    @Override
+    public UserProfileDto getUserProfile(Long userId, Long authorizationUserId) {
+        User user = getUserById(userId);
+
+        UserDetailResultDto userDetailResultDto = UserDetailResultDto.from(user);
+
+        return UserProfileDto.of(
+                userDetailResultDto,
+                userId.equals(authorizationUserId),
+                user.isPushOn(),
+                postQueryService.countByUser(userId)
+        );
+    }
+
+    @Override
+    public NotificationDto getNotification(Long userId) {
+        User user = getUserById(userId);
+
+        return NotificationDto.from(user);
     }
 
     @Override
