@@ -61,7 +61,15 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void logout(String accessToken) {
-        Long userId = getUserIdFromToken(accessToken);
+        Long userId;
+
+        try {
+            userId = getUserIdFromToken(accessToken);
+        } catch (ExpiredJwtException e) {
+            userId = Long.parseLong(e.getClaims().getSubject());
+        } catch (JwtException e) {
+            throw new DPlayException(ResponseError.INVALID_ACCESS_TOKEN);
+        }
 
         userService.removeRefreshToken(userId);
     }
