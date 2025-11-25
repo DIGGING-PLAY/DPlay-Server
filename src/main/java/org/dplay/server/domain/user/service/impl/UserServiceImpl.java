@@ -100,6 +100,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
+    public void deleteUser(Long userId) {
+        userRepository.deleteById(userId);
+    }
+
+    @Override
     public boolean existsByProviderIdAndProvider(String providerId, Platform platform) {
         return userRepository.existsByPlatformIdAndPlatform(providerId, platform);
     }

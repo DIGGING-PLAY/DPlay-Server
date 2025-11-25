@@ -13,6 +13,8 @@ public enum ResponseError {
     INVALID_INPUT_NICKNAME(4004, "닉네임 형식이 잘못되었습니다."),
     INVALID_GRANT(4005, "유효하지 않은 인가 코드입니다."),
     INVALID_DATE_TYPE(4006, "유효하지 않은 날짜 형식입니다."),
+    APPLE_REVOKE_FAILED(4007, "Apple 회원 탈퇴에 실패했습니다."),
+    APPLE_TOKEN_REQUEST_FAILED(4008, "Apple 토큰 요청에 실패했습니다."),
 
     // Unauthorized (401)
     INVALID_ACCESS_TOKEN(4010, "액세스 토큰의 값이 올바르지 않습니다."),

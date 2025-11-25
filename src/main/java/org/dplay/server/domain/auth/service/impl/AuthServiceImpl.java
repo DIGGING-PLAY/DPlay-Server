@@ -13,6 +13,7 @@ import org.dplay.server.domain.auth.openfeign.kakao.service.KakaoService;
 import org.dplay.server.domain.auth.service.AuthService;
 import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.entity.User;
+import org.dplay.server.domain.user.facade.UserFacade;
 import org.dplay.server.domain.user.service.UserService;
 import org.dplay.server.global.auth.constant.Constant;
 import org.dplay.server.global.auth.jwt.JwtTokenProvider;
@@ -36,6 +37,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
     private final NicknameValidator nicknameValidator;
+    private final UserFacade userFacade;
 
     @Override
     @Transactional
@@ -95,6 +97,23 @@ public class AuthServiceImpl implements AuthService {
         user.updateRefreshToken(tokens.refreshToken());
 
         return tokens;
+    }
+
+    @Override
+    @Transactional
+    public void withdraw(final String accessToken) {
+        Long userId = getUserIdFromToken(accessToken);
+        User user = userService.getUserById(userId);
+
+        if (user.getPlatform().equals(Platform.KAKAO)) {
+            kakaoService.unlinkKakaoUser(user.getPlatformId());
+        } else if (user.getPlatform().equals(Platform.APPLE)) {
+            appleService.revoke(user.getPlatformId());
+        } else {
+            throw new DPlayException(ResponseError.INVALID_PLATFORM_TYPE);
+        }
+
+        userFacade.deleteUser(userId);
     }
 
     @Override

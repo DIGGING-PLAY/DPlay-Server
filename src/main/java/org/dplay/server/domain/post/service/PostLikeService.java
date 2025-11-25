@@ -25,6 +25,8 @@ public interface PostLikeService {
      */
     PostLikeDto removeLike(final long userId, final long postId);
 
+    void deletePostSave(User user);
+
     List<Long> findLikedPostIds(User user, List<Post> posts);
 
     boolean isLiked(Post post, User user);

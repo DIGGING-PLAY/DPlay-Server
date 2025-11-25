@@ -21,6 +21,8 @@ public interface UserService {
 
     void removeRefreshToken(Long userId);
 
+    void deleteUser(Long userId);
+
     boolean existsByProviderIdAndProvider(String providerId, Platform platform);
 
     boolean existsByNickname(String nickname);
