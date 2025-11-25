@@ -9,4 +9,17 @@ public record UserProfileDto(
         Boolean pushOn,
         Long postTotalCount
 ) {
+    public static UserProfileDto of(
+            UserDetailResultDto userDetailResultDto,
+            Boolean isHost,
+            Boolean pushOn,
+            Long postTotalCount
+    ) {
+        return new UserProfileDto(
+                userDetailResultDto,
+                isHost,
+                pushOn,
+                postTotalCount
+        );
+    }
 }
