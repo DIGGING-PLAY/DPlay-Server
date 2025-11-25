@@ -1,6 +1,7 @@
 package org.dplay.server.controller.user;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.dplay.server.controller.user.dto.*;
 import org.dplay.server.domain.auth.service.AuthService;
@@ -17,7 +18,6 @@ import org.dplay.server.global.response.ResponseError;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.annotations.NotNull;
 
 import java.io.IOException;
 
