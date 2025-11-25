@@ -77,6 +77,17 @@ public class UserController {
         return ResponseBuilder.created(null);
     }
 
+    @GetMapping("/me/notifications")
+    public ResponseEntity<ApiResponse<NotificationResponse>> getNotification(
+            @NotNull @RequestHeader(Constant.AUTHORIZATION_HEADER) final String accessToken
+    ) {
+        Long userId = authService.getUserIdFromToken(accessToken);
+
+        NotificationResponse response = NotificationResponse.from(userService.getNotification(userId));
+
+        return ResponseBuilder.ok(response);
+    }
+
     /**
      * [ 유저가 등록한 곡 리스트 조회 API ]
      *

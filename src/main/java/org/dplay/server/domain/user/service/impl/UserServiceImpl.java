@@ -7,6 +7,7 @@ import org.dplay.server.domain.s3.S3Service;
 import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.dto.UserDetailResultDto;
 import org.dplay.server.domain.user.dto.UserProfileDto;
+import org.dplay.server.domain.user.dto.NotificationDto;
 import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.domain.user.repository.UserRepository;
 import org.dplay.server.domain.user.service.UserService;
@@ -82,6 +83,13 @@ public class UserServiceImpl implements UserService {
                 .pushOn(user.isPushOn())
                 .postTotalCount(postQueryService.countByUser(userId))
                 .build();
+    }
+
+    @Override
+    public NotificationDto getNotification(Long userId) {
+        User user = getUserById(userId);
+
+        return NotificationDto.from(user);
     }
 
     @Override
