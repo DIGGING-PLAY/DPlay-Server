@@ -9,7 +9,7 @@ public record UserProfileResponse(
         boolean pushOn,
         Long postTotalCount
 ) {
-    public static  UserProfileResponse from(UserProfileDto userProfileDto) {
+    public static UserProfileResponse from(UserProfileDto userProfileDto) {
         return new UserProfileResponse(
                 UserResponse.from(userProfileDto.user()),
                 userProfileDto.isHost(),
