@@ -34,16 +34,14 @@ public class UserController {
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfile(
             @NotNull @RequestHeader("Authorization") final String accessToken,
-            @PathVariable String userId
+            @PathVariable Long userId
     ) {
-        if (userId == null || userId.trim().isEmpty()) {
+        if (userId == null) {
             throw new DPlayException(ResponseError.INVALID_REQUEST_PARAMETER);
         }
 
-        Long id = Long.parseLong(userId);
-
         Long authorizationUserId = authService.getUserIdFromToken(accessToken);
-        UserProfileDto userProfileDto = userService.getUserProfile(id, authorizationUserId);
+        UserProfileDto userProfileDto = userService.getUserProfile(userId, authorizationUserId);
         UserProfileResponse response = UserProfileResponse.from(userProfileDto);
 
         return ResponseBuilder.ok(response);
