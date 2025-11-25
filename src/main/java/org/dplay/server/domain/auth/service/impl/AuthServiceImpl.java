@@ -60,6 +60,22 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    public void logout(String accessToken) {
+        Long userId;
+
+        try {
+            userId = getUserIdFromToken(accessToken);
+        } catch (ExpiredJwtException e) {
+            userId = Long.parseLong(e.getClaims().getSubject());
+        } catch (JwtException e) {
+            throw new DPlayException(ResponseError.INVALID_ACCESS_TOKEN);
+        }
+
+        userService.removeRefreshToken(userId);
+    }
+
+    @Override
+    @Transactional
     public JwtTokenResponse signup(final String providerToken, final SignupRequest signupRequest, final MultipartFile profileImg) throws IOException {
         String platformId = getSocialInfo(providerToken, signupRequest.platform()).platformId();
 

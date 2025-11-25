@@ -19,6 +19,8 @@ public interface UserService {
 
     NotificationDto getNotification(Long userId);
 
+    void removeRefreshToken(Long userId);
+
     boolean existsByProviderIdAndProvider(String providerId, Platform platform);
 
     boolean existsByNickname(String nickname);
