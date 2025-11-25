@@ -80,6 +80,12 @@ public class PostLikeServiceImpl implements PostLikeService {
     }
 
     @Override
+    @Transactional
+    public void deletePostSave(final User user) {
+        postLikeRepository.deleteAllByUser(user);
+    }
+
+    @Override
     public List<Long> findLikedPostIds(User user, List<Post> posts) {
         if (CollectionUtils.isEmpty(posts)) {
             return List.of();

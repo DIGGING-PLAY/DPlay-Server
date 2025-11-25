@@ -78,8 +78,6 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public void deletePost(User user) {
-        postLikeRepository.deleteAllByUser(user);
-        postSaveRepository.deleteAllByUser(user);
         postRepository.deleteAllByUser(user);
     }
 
