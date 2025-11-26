@@ -77,6 +77,12 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
+    public void deletePost(User user) {
+        postRepository.deleteAllByUser(user);
+    }
+
+    @Override
+    @Transactional
     public void deletePostByPostId(final long userId, final long postId) {
         Post post = findByPostId(postId);
 

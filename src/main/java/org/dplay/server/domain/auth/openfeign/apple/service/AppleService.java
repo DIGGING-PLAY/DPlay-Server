@@ -5,4 +5,6 @@ import org.dplay.server.domain.auth.dto.SocialUserDto;
 public interface AppleService {
 
     SocialUserDto getSocialUserInfo(String identityToken);
+
+    void revoke(final String authCode);
 }

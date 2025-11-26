@@ -81,6 +81,12 @@ public class PostSaveServiceImpl implements PostSaveService {
     }
 
     @Override
+    @Transactional
+    public void deletePostSave(final User user) {
+        postSaveRepository.deleteAllByUser(user);
+    }
+
+    @Override
     public List<Long> findScrappedPostIds(User user, List<Post> posts) {
         if (CollectionUtils.isEmpty(posts)) {
             return List.of();

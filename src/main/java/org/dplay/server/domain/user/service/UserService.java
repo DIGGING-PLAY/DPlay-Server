@@ -1,6 +1,8 @@
 package org.dplay.server.domain.user.service;
 
 import org.dplay.server.domain.user.Platform;
+import org.dplay.server.domain.user.dto.NotificationDto;
+import org.dplay.server.domain.user.dto.UserProfileDto;
 import org.dplay.server.domain.user.entity.User;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,6 +14,14 @@ public interface UserService {
     void updateNickname(Long userId, String nickname);
 
     void updateNotification(Long userId, Boolean pushOn);
+
+    UserProfileDto getUserProfile(Long userId, Long authorizationUserId);
+
+    NotificationDto getNotification(Long userId);
+
+    void removeRefreshToken(Long userId);
+
+    void deleteUser(Long userId);
 
     boolean existsByProviderIdAndProvider(String providerId, Platform platform);
 

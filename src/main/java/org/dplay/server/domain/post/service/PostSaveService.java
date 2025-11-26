@@ -23,6 +23,8 @@ public interface PostSaveService {
      */
     void removeScrap(final long userId, final long postId);
 
+    void deletePostSave(User user);
+
     List<Long> findScrappedPostIds(User user, List<Post> posts);
 
     boolean isSaved(Post post, User user);
