@@ -23,16 +23,20 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Create application-prod.yml from Secrets (safe, no shell expansion)
+      - name: Create application-prod.yml from Secrets
+        env:
+          YML_CONTENT: ${{ secrets.APPLICATION_PROD_YML }}
         run: |
           mkdir -p ./src/main/resources
-          echo "${{ secrets.APPLICATION_PROD_YML }}" > ./src/main/resources/application-prod.yml
+          printf '%s\n' "$YML_CONTENT" > ./src/main/resources/application-prod.yml
           chmod 600 ./src/main/resources/application-prod.yml
 
-      - name: Create Apple Music private key file from Secrets (safe)
+      - name: Create Apple Music private key file from Secrets
+        env:
+          KEY_CONTENT: ${{ secrets.APPLE_MUSIC_PRIVATE_KEY }}
         run: |
           mkdir -p ./src/main/resources
-          echo "${{ secrets.APPLE_MUSIC_PRIVATE_KEY }}" > ./src/main/resources/AuthKey_B4ZKW7CJ8U.p8
+          printf '%s\n' "$KEY_CONTENT" > ./src/main/resources/AuthKey_B4ZKW7CJ8U.p8
           chmod 600 ./src/main/resources/AuthKey_B4ZKW7CJ8U.p8
 
       - name: Build with Gradle
@@ -51,7 +55,6 @@ jobs:
 
       - name: Validate JWT secret length
         run: |
-          # 시크릿이 비어있거나 32바이트(=256비트) 미만이면 워크플로우 실패
           len=$(echo -n "${{ secrets.JWT_SECRET_KEY }}" | wc -c)
           echo "JWT_SECRET_KEY length on runner: ${len}"
           if [ "$len" -lt 32 ]; then
