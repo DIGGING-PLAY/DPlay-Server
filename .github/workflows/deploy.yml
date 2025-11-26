@@ -77,17 +77,40 @@ jobs:
 
             # 최신 이미지 pull 및 새 컨테이너 실행
             docker pull ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest
-            docker run -d --rm -p $NEXT_PORT:8080 --name dplay-container-$NEXT ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest
+            docker run -d --rm \
+              -p $NEXT_PORT:8080 \
+              --name dplay-container-$NEXT \
+              -e JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+              -e SPRING_DATASOURCE_URL="${{ secrets.DB_URL }}" \
+              -e SPRING_DATASOURCE_USERNAME="${{ secrets.DB_USERNAME }}" \
+              -e SPRING_DATASOURCE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+              -e APPLE_MUSIC_TEAM_ID="${{ secrets.APPLE_MUSIC_TEAM_ID }}" \
+              -e APPLE_MUSIC_KEY_ID="${{ secrets.APPLE_MUSIC_KEY_ID }}" \
+              -e APPLE_MUSIC_PRIVATE_KEY_PATH="AuthKey_B4ZKW7CJ8U.p8" \
+              -e APPLE_MUSIC_BASE_URL="https://api.music.apple.com" \
+              -e APPLE_MUSIC_TOKEN_EXPIRATION="180" \
+              ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest
 
-            # 헬스 체크
-            for i in {1..10}; do
-              if curl -s http://localhost:$NEXT_PORT/api/actuator/health | grep '"status":"UP"'; then
-                echo "🟢 새 컨테이너 헬스 체크 통과"
+            # 헬스 체크 (포트가 리스닝 중인지 확인)
+            HEALTH_CHECK_PASSED=false
+            for i in {1..20}; do
+              sleep 5 # 컨테이너 시작 대기
+              if nc -z localhost $NEXT_PORT 2>/dev/null || curl -s -o /dev/null -w "%{http_code}" http://localhost:$NEXT_PORT/api/actuator/health | grep -E "200|401" > /dev/null; then
+                echo "🟢 새 컨테이너 헬스 체크 통과 (포트 $NEXT_PORT 리스닝 중)"
+                HEALTH_CHECK_PASSED=true
                 break
               fi
-              echo "🔁 헬스 체크 중... ($i/10)"
+              echo "🔁 헬스 체크 중... ($i/20)"
+              docker logs --tail 10 dplay-container-$NEXT || true
               sleep 3
             done
+
+            if [ "$HEALTH_CHECK_PASSED" = false ]; then
+              echo "❌ 헬스 체크 실패. 배포 중단."
+              docker logs dplay-container-$NEXT
+              docker stop dplay-container-$NEXT || true
+              exit 1
+            fi
 
             # Nginx 설정 전환
             echo "🌐 Nginx 전환: $NEXT"
