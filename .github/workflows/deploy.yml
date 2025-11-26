@@ -64,6 +64,7 @@ jobs:
 
       - name: Deploy via SSH with Blue-Green Strategy
         uses: appleboy/ssh-action@master
+        timeout-minutes: 10
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
@@ -100,10 +101,28 @@ jobs:
             docker stop dplay-container-$NEXT || true
             docker rm dplay-container-$NEXT || true
             
+            # 서버 리소스 확인
+            echo "=== 서버 리소스 확인 ==="
+            free -h || true
+            df -h / || true
+            echo "현재 실행 중인 컨테이너:"
+            docker ps || true
+            
             # 최신 이미지 pull
+            echo "=== Docker 이미지 Pull ==="
             docker pull ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest
             
+            # 포트 사용 확인
+            echo "=== 포트 $NEXT_PORT 사용 확인 ==="
+            if netstat -tuln 2>/dev/null | grep -q ":$NEXT_PORT " || ss -tuln 2>/dev/null | grep -q ":$NEXT_PORT "; then
+              echo "⚠️ 포트 $NEXT_PORT가 이미 사용 중입니다."
+              netstat -tuln 2>/dev/null | grep ":$NEXT_PORT " || ss -tuln 2>/dev/null | grep ":$NEXT_PORT " || true
+            else
+              echo "✅ 포트 $NEXT_PORT 사용 가능"
+            fi
+            
             # 새 컨테이너 실행
+            echo "=== 새 컨테이너 실행 ==="
             docker run -d --rm \
               -p $NEXT_PORT:8080 \
               --name dplay-container-$NEXT \
@@ -118,31 +137,87 @@ jobs:
               -e APPLE_MUSIC_TOKEN_EXPIRATION="180" \
               ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest
             
-            # (디버그용) 새 컨테이너에 JWT_ENV가 설정됐는지 존재 여부만 확인 (값은 출력하지 않음)
-            if docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' dplay-container-$NEXT | grep -q '^JWT_SECRET_KEY='; then
-              echo "JWT env present in container"
-            else
-              echo "JWT env NOT present in container"
+            # 컨테이너 실행 확인
+            sleep 2
+            echo "=== 컨테이너 상태 확인 ==="
+            if ! docker ps | grep -q dplay-container-$NEXT; then
+              echo "❌ 컨테이너가 실행되지 않았습니다."
+              echo "모든 컨테이너 상태:"
+              docker ps -a || true
+              echo "컨테이너 로그:"
+              docker logs dplay-container-$NEXT --tail 100 || true
+              exit 1
             fi
             
-            # 헬스 체크 (앱 레벨)
+            echo "✅ 컨테이너 실행 중"
+            docker ps | grep dplay-container-$NEXT || true
+            
+            # (디버그용) 새 컨테이너에 JWT_ENV가 설정됐는지 존재 여부만 확인 (값은 출력하지 않음)
+            if docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' dplay-container-$NEXT | grep -q '^JWT_SECRET_KEY='; then
+              echo "✅ JWT env present in container"
+            else
+              echo "⚠️ JWT env NOT present in container"
+            fi
+            
+            # 애플리케이션 시작 대기 및 로그 모니터링
+            echo "=== 애플리케이션 시작 대기 및 로그 확인 ==="
+            echo "초기 로그 (컨테이너 시작 후 5초):"
+            sleep 5
+            docker logs --tail 20 dplay-container-$NEXT || true
+            
+            echo "추가 대기 (10초)..."
+            sleep 10
+            
+            # 헬스 체크 (앱 레벨) - 최대 2분 (24번 시도 × 5초)
             HEALTH_CHECK_PASSED=false
-            for i in {1..20}; do
-              sleep 5
-              STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$NEXT_PORT/api/actuator/health || echo "000")
-              echo "health check: $STATUS"
+            MAX_ATTEMPTS=24
+            echo "=== 헬스 체크 시작 (최대 ${MAX_ATTEMPTS}번 시도) ==="
+            
+            for i in $(seq 1 $MAX_ATTEMPTS); do
+              # 컨테이너 상태 확인
+              if ! docker ps | grep -q dplay-container-$NEXT; then
+                echo "❌ 컨테이너가 중지되었습니다."
+                echo "컨테이너 종료 상태:"
+                docker ps -a | grep dplay-container-$NEXT || true
+                echo "컨테이너 로그 (마지막 100줄):"
+                docker logs dplay-container-$NEXT --tail 100 || true
+                exit 1
+              fi
+              
+              # 헬스 체크 시도 (타임아웃 3초)
+              STATUS=$(timeout 3 curl -s -o /dev/null -w "%{http_code}" http://localhost:$NEXT_PORT/api/actuator/health 2>/dev/null || echo "000")
+              echo "[$i/$MAX_ATTEMPTS] health check: $STATUS"
+              
               if [ "$STATUS" = "200" ] || [ "$STATUS" = "401" ]; then
                 echo "🟢 새 컨테이너 헬스 체크 통과 (포트 $NEXT_PORT)"
                 HEALTH_CHECK_PASSED=true
                 break
               fi
-              echo "🔁 헬스 체크 중... ($i/20)"
-              docker logs --tail 20 dplay-container-$NEXT || true
+              
+              # 5번마다 상세 로그 확인
+              if [ $((i % 5)) -eq 0 ]; then
+                echo "--- 애플리케이션 로그 (최근 15줄) ---"
+                docker logs --tail 15 dplay-container-$NEXT 2>&1 || true
+                echo "--- 컨테이너 리소스 사용량 ---"
+                docker stats --no-stream dplay-container-$NEXT 2>&1 || true
+              fi
+              
+              sleep 5
             done
             
             if [ "$HEALTH_CHECK_PASSED" = false ]; then
-              echo "❌ 헬스 체크 실패. 배포 중단."
-              docker logs dplay-container-$NEXT --tail 200 || true
+              echo "❌ 헬스 체크 실패 (최대 시도 횟수 초과). 배포 중단."
+              echo "=== 최종 진단 정보 ==="
+              echo "컨테이너 상태:"
+              docker ps -a | grep dplay-container-$NEXT || true
+              echo ""
+              echo "포트 $NEXT_PORT 리스닝 확인:"
+              netstat -tuln 2>/dev/null | grep ":$NEXT_PORT " || ss -tuln 2>/dev/null | grep ":$NEXT_PORT " || echo "포트가 리스닝되지 않음"
+              echo ""
+              echo "컨테이너 로그 (마지막 100줄):"
+              docker logs --tail 100 dplay-container-$NEXT || true
+              echo ""
+              echo "컨테이너 중지 중..."
               docker stop dplay-container-$NEXT || true
               exit 1
             fi
