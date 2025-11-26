@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.dplay.server.controller.question.dto.MonthlyQuestionsRequest;
 import org.dplay.server.controller.question.dto.MonthlyQuestionsResponse;
 import org.dplay.server.controller.question.dto.QuestionResponse;
+import org.dplay.server.domain.auth.service.AuthService;
 import org.dplay.server.domain.question.service.QuestionService;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ApiResponse;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class QuestionController {
 
     private final QuestionService questionService;
+    private final AuthService authService;
 
     /**
      * [ 오늘의 질문을 조회하는 API ]
@@ -32,7 +34,7 @@ public class QuestionController {
     public ResponseEntity<ApiResponse<QuestionResponse>> getTodayQuestion(
             @RequestHeader("Authorization") final String accessToken
     ) {
-        Long userId = 1L; // TODO : 회원가입 이후 수정 예정
+        authService.getUserIdFromToken(accessToken);
         QuestionResponse response = QuestionResponse.of(questionService.getTodayQuestion());
         return ResponseBuilder.ok(response);
     }
@@ -54,7 +56,7 @@ public class QuestionController {
             @RequestHeader("Authorization") final String accessToken,
             @Valid @ModelAttribute MonthlyQuestionsRequest request
     ) {
-        Long userId = 1L; // TODO : 회원가입 이후 수정 예정
+        authService.getUserIdFromToken(accessToken);
         MonthlyQuestionsResponse response = MonthlyQuestionsResponse.of(
                 questionService.getMonthlyQuestions(request.year(), request.month())
         );
