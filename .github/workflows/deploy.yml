@@ -23,15 +23,17 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Create application-prod.yml from Secrets
+      - name: Create application-prod.yml from Secrets (safe, no shell expansion)
         run: |
           mkdir -p ./src/main/resources
           echo "${{ secrets.APPLICATION_PROD_YML }}" > ./src/main/resources/application-prod.yml
+          chmod 600 ./src/main/resources/application-prod.yml
 
-      - name: Create Apple Music private key file from Secrets
+      - name: Create Apple Music private key file from Secrets (safe)
         run: |
           mkdir -p ./src/main/resources
           echo "${{ secrets.APPLE_MUSIC_PRIVATE_KEY }}" > ./src/main/resources/AuthKey_B4ZKW7CJ8U.p8
+          chmod 600 ./src/main/resources/AuthKey_B4ZKW7CJ8U.p8
 
       - name: Build with Gradle
         run: ./gradlew -x test clean bootJar
@@ -47,6 +49,16 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest
 
+      - name: Validate JWT secret length
+        run: |
+          # 시크릿이 비어있거나 32바이트(=256비트) 미만이면 워크플로우 실패
+          len=$(echo -n "${{ secrets.JWT_SECRET_KEY }}" | wc -c)
+          echo "JWT_SECRET_KEY length on runner: ${len}"
+          if [ "$len" -lt 32 ]; then
+            echo "ERROR: JWT_SECRET_KEY is missing or too short (length=${len}). Set a secure 32+ byte secret in GitHub Secrets." >&2
+            exit 1
+          fi
+
       - name: Deploy via SSH with Blue-Green Strategy
         uses: appleboy/ssh-action@master
         with:
@@ -55,11 +67,21 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.PORT }}
           script: |
-            # 로그인
+            set -euo pipefail
+            
+            # 로그인 (원격에서 DockerHub 로그인)
             docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
-
+            
+            # 원격에서 전달된 JWT 길이 확인 (값 자체는 출력하지 않음)
+            JWT_LEN=$(echo -n "${{ secrets.JWT_SECRET_KEY }}" | wc -c)
+            echo "Remote check - JWT length: ${JWT_LEN}"
+            if [ "${JWT_LEN}" -lt 32 ]; then
+              echo "ERROR: JWT_SECRET_KEY is missing or too short on remote (len=${JWT_LEN}). Aborting." >&2
+              exit 1
+            fi
+            
             # 현재 컨테이너 상태 확인
-            if docker ps | grep dplay-container-blue; then
+            if docker ps --format '{{.Names}}' | grep -q dplay-container-blue; then
               CURRENT=blue
               NEXT=green
               NEXT_PORT=8082
@@ -68,15 +90,17 @@ jobs:
               NEXT=blue
               NEXT_PORT=8081
             fi
-
+            
             echo "현재 운영 중: $CURRENT → 새로 띄울 컨테이너: $NEXT (port $NEXT_PORT)"
-
-            # 🧹 이전 컨테이너 중지 및 제거
+            
+            # 이전 NEXT 컨테이너 중지 및 제거
             docker stop dplay-container-$NEXT || true
             docker rm dplay-container-$NEXT || true
-
-            # 최신 이미지 pull 및 새 컨테이너 실행
+            
+            # 최신 이미지 pull
             docker pull ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest
+            
+            # 새 컨테이너 실행
             docker run -d --rm \
               -p $NEXT_PORT:8080 \
               --name dplay-container-$NEXT \
@@ -90,35 +114,43 @@ jobs:
               -e APPLE_MUSIC_BASE_URL="https://api.music.apple.com" \
               -e APPLE_MUSIC_TOKEN_EXPIRATION="180" \
               ${{ secrets.DOCKER_USERNAME }}/dplay-server:latest
-
-            # 헬스 체크 (포트가 리스닝 중인지 확인)
+            
+            # (디버그용) 새 컨테이너에 JWT_ENV가 설정됐는지 존재 여부만 확인 (값은 출력하지 않음)
+            if docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' dplay-container-$NEXT | grep -q '^JWT_SECRET_KEY='; then
+              echo "JWT env present in container"
+            else
+              echo "JWT env NOT present in container"
+            fi
+            
+            # 헬스 체크 (앱 레벨)
             HEALTH_CHECK_PASSED=false
             for i in {1..20}; do
-              sleep 5 # 컨테이너 시작 대기
-              if nc -z localhost $NEXT_PORT 2>/dev/null || curl -s -o /dev/null -w "%{http_code}" http://localhost:$NEXT_PORT/api/actuator/health | grep -E "200|401" > /dev/null; then
-                echo "🟢 새 컨테이너 헬스 체크 통과 (포트 $NEXT_PORT 리스닝 중)"
+              sleep 5
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$NEXT_PORT/api/actuator/health || echo "000")
+              echo "health check: $STATUS"
+              if [ "$STATUS" = "200" ] || [ "$STATUS" = "401" ]; then
+                echo "🟢 새 컨테이너 헬스 체크 통과 (포트 $NEXT_PORT)"
                 HEALTH_CHECK_PASSED=true
                 break
               fi
               echo "🔁 헬스 체크 중... ($i/20)"
-              docker logs --tail 10 dplay-container-$NEXT || true
-              sleep 3
+              docker logs --tail 20 dplay-container-$NEXT || true
             done
-
+            
             if [ "$HEALTH_CHECK_PASSED" = false ]; then
               echo "❌ 헬스 체크 실패. 배포 중단."
-              docker logs dplay-container-$NEXT
+              docker logs dplay-container-$NEXT --tail 200 || true
               docker stop dplay-container-$NEXT || true
               exit 1
             fi
-
+            
             # Nginx 설정 전환
             echo "🌐 Nginx 전환: $NEXT"
             sudo cp /etc/nginx/conf.d/backup/api-$NEXT.conf /etc/nginx/conf.d/api.conf
             sudo nginx -t
             sudo systemctl reload nginx
-
+            
             # 이전 컨테이너 종료
             docker stop dplay-container-$CURRENT || true
-
+            
             echo "배포 완료 at $(date '+%Y-%m-%d %H:%M:%S')"
