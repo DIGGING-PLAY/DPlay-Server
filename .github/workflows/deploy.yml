@@ -120,7 +120,7 @@ jobs:
               -v /home/ec2-user/app/env/AuthKey_B4ZKW7CJ8U.p8:/app/AuthKey_B4ZKW7CJ8U.p8:ro \
               "${{ secrets.DOCKER_USERNAME }}/dplay-server:latest" \
               --spring.profiles.active=prod \
-              --spring.config.location=file:/app/application-prod.yml
+              --spring.config.additional-location=file:/app/application-prod.yml
 
             echo "==[10] Show container status=="
             docker ps --filter "name=dplay-container-$NEXT" --no-trunc
