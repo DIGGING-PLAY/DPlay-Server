@@ -4,10 +4,13 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -36,10 +39,6 @@ public class AppleMusicTokenService {
         this.tokenExpiration = tokenExpiration;
     }
 
-    /**
-     * Apple Music Developer Token 생성 (JWT)
-     * Apple Music API 인증에 사용되는 토큰입니다.
-     */
     public String generateDeveloperToken() {
         try {
             String privateKeyContent = readPrivateKeyFile();
@@ -62,18 +61,20 @@ public class AppleMusicTokenService {
     }
 
     /**
-     * resources 폴더에서 .p8 파일을 읽어옵니다.
+     * 서버 파일 시스템 경로에서 .p8 파일 읽기
      */
     private String readPrivateKeyFile() throws IOException {
-        ClassPathResource resource = new ClassPathResource(privateKeyPath);
-        if (!resource.exists()) {
-            throw new IOException("Private key file not found: " + privateKeyPath);
+        Path path = Paths.get(privateKeyPath);
+
+        if (!Files.exists(path)) {
+            throw new IOException("Private key file not found: " + path.toAbsolutePath());
         }
-        return new String(resource.getInputStream().readAllBytes());
+
+        log.info("Loading Apple Music private key from path: {}", path.toAbsolutePath());
+        return Files.readString(path, StandardCharsets.UTF_8);
     }
 
     private PrivateKey parsePrivateKey(String privateKeyContent) throws Exception {
-        // PEM 형식의 private key를 파싱
         String privateKeyPEM = privateKeyContent
                 .replace("-----BEGIN PRIVATE KEY-----", "")
                 .replace("-----END PRIVATE KEY-----", "")
