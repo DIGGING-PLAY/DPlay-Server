@@ -32,7 +32,7 @@ public class SwaggerConfig {
                         .version("v1.0.0"))
                 .servers(List.of(
                         new Server().url("http://localhost:8080/api").description("Local Server"),
-                        new Server().url("http://3.38.79.157/api").description("Production Server")
+                        new Server().url("http://15.165.56.146/api").description("Production Server")
                 ))
                 .addSecurityItem(securityRequirement)
                 .components(components);
