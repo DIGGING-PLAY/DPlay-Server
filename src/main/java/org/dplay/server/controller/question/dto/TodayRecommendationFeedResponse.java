@@ -7,7 +7,6 @@ import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.global.util.DateTimeFormatUtil;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public record TodayRecommendationFeedResponse(
@@ -22,10 +21,6 @@ public record TodayRecommendationFeedResponse(
 
     public static TodayRecommendationFeedResponse from(PostFeedResultDto dto) {
         List<PostFeedItemDto> feedItems = dto.items();
-        boolean onlyEditorPicks = feedItems.stream().allMatch(PostFeedItemDto::isEditorPick);
-
-        PostFeedItemDto popularItem = findMostPopularItem(feedItems);
-        PostFeedItemDto newestItem = findNewestItem(feedItems);
 
         List<TodayRecommendationFeedItemResponse> itemResponses = new ArrayList<>(feedItems.size());
 
@@ -34,13 +29,7 @@ public record TodayRecommendationFeedResponse(
             Post post = item.post();
             User author = post.getUser();
 
-            TodayRecommendationFeedBadges badges = createBadges(
-                    item,
-                    popularItem,
-                    newestItem,
-                    onlyEditorPicks,
-                    index
-            );
+            TodayRecommendationFeedBadges badges = createBadges(index);
 
             itemResponses.add(TodayRecommendationFeedItemResponse.from(item, author, badges));
         }
@@ -56,53 +45,19 @@ public record TodayRecommendationFeedResponse(
         );
     }
 
-    private static TodayRecommendationFeedBadges createBadges(
-            PostFeedItemDto item,
-            PostFeedItemDto popularItem,
-            PostFeedItemDto newestItem,
-            boolean onlyEditorPicks,
-            int index
-    ) {
-        if (onlyEditorPicks) {
-            return switch (index) {
-                case 0 -> new TodayRecommendationFeedBadges(true, false, false);
-                case 1 -> new TodayRecommendationFeedBadges(true, true, false);
-                case 2 -> new TodayRecommendationFeedBadges(true, false, true);
-                default -> new TodayRecommendationFeedBadges(true, false, false);
-            };
-        }
-
-        boolean isEditorPick = item.isEditorPick();
-        boolean isPopular = item.isPopular();
-        if (!isPopular && popularItem != null && samePost(popularItem, item)) {
-            isPopular = true;
-        }
-
-        boolean isNew = item.isNew();
-        if (!isNew && newestItem != null && samePost(newestItem, item)) {
-            isNew = true;
-        }
-
-        return new TodayRecommendationFeedBadges(isEditorPick, isPopular, isNew);
-    }
-
-    private static boolean samePost(PostFeedItemDto left, PostFeedItemDto right) {
-        return left.post().getPostId().equals(right.post().getPostId());
-    }
-
-    private static PostFeedItemDto findMostPopularItem(List<PostFeedItemDto> items) {
-        return items.stream()
-                .max(Comparator
-                        .comparingInt((PostFeedItemDto dto) -> dto.post().getLikeCount())
-                        .thenComparingLong(dto -> -dto.post().getPostId()))
-                .orElse(null);
-    }
-
-    private static PostFeedItemDto findNewestItem(List<PostFeedItemDto> items) {
-        return items.stream()
-                .max(Comparator
-                        .comparing((PostFeedItemDto dto) -> dto.post().getCreatedAt(), Comparator.nullsFirst(Comparator.naturalOrder()))
-                        .thenComparingLong(dto -> dto.post().getPostId()))
-                .orElse(null);
+    /**
+     * 뱃지 생성 로직 (인덱스 기반):
+     * - 첫 번째 곡 (index 0): isEditorPick = true, 나머지 false
+     * - 두 번째 곡 (index 1): isPopular = true, isNew = false, isEditorPick = false
+     * - 세 번째 곡 (index 2): isNew = true, isPopular = false, isEditorPick = false
+     * - 네 번째부터 (index 3+): 모든 뱃지 false
+     */
+    private static TodayRecommendationFeedBadges createBadges(int index) {
+        return switch (index) {
+            case 0 -> new TodayRecommendationFeedBadges(true, false, false);
+            case 1 -> new TodayRecommendationFeedBadges(false, true, false);
+            case 2 -> new TodayRecommendationFeedBadges(false, false, true);
+            default -> new TodayRecommendationFeedBadges(false, false, false);
+        };
     }
 }

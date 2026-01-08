@@ -14,7 +14,7 @@ import org.dplay.server.domain.question.entity.QuestionEditorPick;
 import org.dplay.server.domain.question.service.QuestionEditorPickService;
 import org.dplay.server.domain.question.service.QuestionService;
 import org.dplay.server.domain.user.entity.User;
-import org.dplay.server.domain.user.repository.UserRepository;
+import org.dplay.server.domain.user.service.UserService;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
 import org.springframework.stereotype.Service;
@@ -47,7 +47,7 @@ public class PostFeedServiceImpl implements PostFeedService {
     private final PostQueryService postQueryService;
     private final PostLikeService postLikeService;
     private final PostSaveService postSaveService;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
     @Override
     public PostFeedResultDto getPastRecommendationFeed(
@@ -56,9 +56,7 @@ public class PostFeedServiceImpl implements PostFeedService {
             String cursor,
             Integer limit
     ) {
-        // TODO : userService 로 바꾸기
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
+        User user = userService.getUserById(userId);
 
         Question question = questionService.getQuestionById(questionId);
 
@@ -86,12 +84,9 @@ public class PostFeedServiceImpl implements PostFeedService {
         if (locked) {
             responsePosts.addAll(editorPickPosts);
         } else {
-            int editorPickCount = editorPickPosts.size();
-            int pageSize = isFirstPage ? Math.max(visibleLimit - editorPickCount, 0) : visibleLimit;
-
             List<Post> feedPosts = new ArrayList<>();
-            if (pageSize > 0) {
-                int fetchSize = pageSize + 1;
+            if (visibleLimit > 0) {
+                int fetchSize = visibleLimit + 1;
                 List<Long> excludePostIds = new ArrayList<>(editorPickPostIds);
                 List<Post> fetched = postQueryService.findFeedPosts(
                         questionId,
@@ -101,10 +96,10 @@ public class PostFeedServiceImpl implements PostFeedService {
                         excludePostIds
                 );
 
-                if (fetched.size() > pageSize) {
-                    Post lastReturnedPost = fetched.get(pageSize - 1);
+                if (fetched.size() > visibleLimit) {
+                    Post lastReturnedPost = fetched.get(visibleLimit - 1);
                     nextCursor = encodeCursor(lastReturnedPost.getLikeCount(), lastReturnedPost.getPostId());
-                    feedPosts.addAll(fetched.subList(0, pageSize));
+                    feedPosts.addAll(fetched.subList(0, visibleLimit));
                 } else {
                     feedPosts.addAll(fetched);
                 }
@@ -113,6 +108,7 @@ public class PostFeedServiceImpl implements PostFeedService {
             if (isFirstPage) {
                 responsePosts.addAll(editorPickPosts);
             }
+
             responsePosts.addAll(feedPosts);
         }
 
@@ -150,9 +146,7 @@ public class PostFeedServiceImpl implements PostFeedService {
         Question question = questionService.getQuestionByDate(today);
         Long questionId = question.getQuestionId();
 
-        // TODO : UserService 로 고치기
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
+        User user = userService.getUserById(userId);
 
         List<QuestionEditorPick> editorPicks = questionEditorPickService.getOrderedEditorPicks(questionId);
         long totalCount = postQueryService.countByQuestion(questionId);
@@ -252,7 +246,15 @@ public class PostFeedServiceImpl implements PostFeedService {
             addIfAbsent(resultPosts, popularPost);
         }
 
+        // 세 번째 곡 선택 시 첫 번째, 두 번째 곡 제외
+        Set<Long> excludedForNewest = new HashSet<>();
+        excludedForNewest.addAll(usedEditorPickIds);
+        if (popularPost != null) {
+            excludedForNewest.add(popularPost.getPostId());
+        }
+
         Post newestPost = candidatePosts.stream()
+                .filter(post -> !excludedForNewest.contains(post.getPostId()))
                 .max(Comparator
                         .comparing(Post::getCreatedAt, Comparator.nullsFirst(LocalDateTime::compareTo))
                         .thenComparingLong(Post::getPostId))
