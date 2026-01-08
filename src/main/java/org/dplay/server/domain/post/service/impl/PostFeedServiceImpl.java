@@ -15,6 +15,7 @@ import org.dplay.server.domain.question.service.QuestionEditorPickService;
 import org.dplay.server.domain.question.service.QuestionService;
 import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.domain.user.repository.UserRepository;
+import org.dplay.server.domain.user.service.UserService;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class PostFeedServiceImpl implements PostFeedService {
     private final PostLikeService postLikeService;
     private final PostSaveService postSaveService;
     private final UserRepository userRepository;
+    private final UserService userService;
 
     @Override
     public PostFeedResultDto getPastRecommendationFeed(
@@ -150,9 +152,7 @@ public class PostFeedServiceImpl implements PostFeedService {
         Question question = questionService.getQuestionByDate(today);
         Long questionId = question.getQuestionId();
 
-        // TODO : UserService 로 고치기
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
+        User user = userService.getUserById(userId);
 
         List<QuestionEditorPick> editorPicks = questionEditorPickService.getOrderedEditorPicks(questionId);
         long totalCount = postQueryService.countByQuestion(questionId);
