@@ -84,12 +84,9 @@ public class PostFeedServiceImpl implements PostFeedService {
         if (locked) {
             responsePosts.addAll(editorPickPosts);
         } else {
-            int editorPickCount = editorPickPosts.size();
-            int pageSize = isFirstPage ? Math.max(visibleLimit - editorPickCount, 0) : visibleLimit;
-
             List<Post> feedPosts = new ArrayList<>();
-            if (pageSize > 0) {
-                int fetchSize = pageSize + 1;
+            if (visibleLimit > 0) {
+                int fetchSize = visibleLimit + 1;
                 List<Long> excludePostIds = new ArrayList<>(editorPickPostIds);
                 List<Post> fetched = postQueryService.findFeedPosts(
                         questionId,
@@ -99,10 +96,10 @@ public class PostFeedServiceImpl implements PostFeedService {
                         excludePostIds
                 );
 
-                if (fetched.size() > pageSize) {
-                    Post lastReturnedPost = fetched.get(pageSize - 1);
+                if (fetched.size() > visibleLimit) {
+                    Post lastReturnedPost = fetched.get(visibleLimit - 1);
                     nextCursor = encodeCursor(lastReturnedPost.getLikeCount(), lastReturnedPost.getPostId());
-                    feedPosts.addAll(fetched.subList(0, pageSize));
+                    feedPosts.addAll(fetched.subList(0, visibleLimit));
                 } else {
                     feedPosts.addAll(fetched);
                 }
@@ -111,6 +108,7 @@ public class PostFeedServiceImpl implements PostFeedService {
             if (isFirstPage) {
                 responsePosts.addAll(editorPickPosts);
             }
+
             responsePosts.addAll(feedPosts);
         }
 
