@@ -252,7 +252,15 @@ public class PostFeedServiceImpl implements PostFeedService {
             addIfAbsent(resultPosts, popularPost);
         }
 
+        // 세 번째 곡 선택 시 첫 번째, 두 번째 곡 제외
+        Set<Long> excludedForNewest = new HashSet<>();
+        excludedForNewest.addAll(usedEditorPickIds);
+        if (popularPost != null) {
+            excludedForNewest.add(popularPost.getPostId());
+        }
+        
         Post newestPost = candidatePosts.stream()
+                .filter(post -> !excludedForNewest.contains(post.getPostId()))
                 .max(Comparator
                         .comparing(Post::getCreatedAt, Comparator.nullsFirst(LocalDateTime::compareTo))
                         .thenComparingLong(Post::getPostId))
