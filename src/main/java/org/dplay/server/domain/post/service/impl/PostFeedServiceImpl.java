@@ -14,7 +14,6 @@ import org.dplay.server.domain.question.entity.QuestionEditorPick;
 import org.dplay.server.domain.question.service.QuestionEditorPickService;
 import org.dplay.server.domain.question.service.QuestionService;
 import org.dplay.server.domain.user.entity.User;
-import org.dplay.server.domain.user.repository.UserRepository;
 import org.dplay.server.domain.user.service.UserService;
 import org.dplay.server.global.exception.DPlayException;
 import org.dplay.server.global.response.ResponseError;
@@ -48,7 +47,6 @@ public class PostFeedServiceImpl implements PostFeedService {
     private final PostQueryService postQueryService;
     private final PostLikeService postLikeService;
     private final PostSaveService postSaveService;
-    private final UserRepository userRepository;
     private final UserService userService;
 
     @Override
@@ -58,9 +56,7 @@ public class PostFeedServiceImpl implements PostFeedService {
             String cursor,
             Integer limit
     ) {
-        // TODO : userService 로 바꾸기
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new DPlayException(ResponseError.USER_NOT_FOUND));
+        User user = userService.getUserById(userId);
 
         Question question = questionService.getQuestionById(questionId);
 
@@ -258,7 +254,7 @@ public class PostFeedServiceImpl implements PostFeedService {
         if (popularPost != null) {
             excludedForNewest.add(popularPost.getPostId());
         }
-        
+
         Post newestPost = candidatePosts.stream()
                 .filter(post -> !excludedForNewest.contains(post.getPostId()))
                 .max(Comparator
