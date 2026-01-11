@@ -34,4 +34,6 @@ public interface UserService {
     User getUserById(Long userId);
 
     User makeUser(String platformId, Platform platform, String nickname, MultipartFile profileImg) throws IOException;
+
+    long getUserCount();
 }
