@@ -81,7 +81,7 @@ jobs:
             chmod 600 /home/ec2-user/app/env/AuthKey_B4ZKW7CJ8U.p8
             
             # Write Apple OAuth private key file from GitHub Secret (mounted into containers)
-            echo "==[4] Write Apple Music private key=="
+            echo "==[4] Write Apple OAuth private key=="
             cat > /home/ec2-user/app/env/AuthKey_T3NU8PR9HA.p8 <<'KEY'
             ${{ secrets.APPLE_OAUTH_PRIVATE_KEY }}
             KEY
