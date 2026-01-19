@@ -79,14 +79,21 @@ jobs:
             ${{ secrets.APPLE_MUSIC_PRIVATE_KEY }}
             KEY
             chmod 600 /home/ec2-user/app/env/AuthKey_B4ZKW7CJ8U.p8
+            
+            # Write Apple OAuth private key file from GitHub Secret (mounted into containers)
+            echo "==[4] Write Apple OAuth private key=="
+            cat > /home/ec2-user/app/env/AuthKey_T3NU8PR9HA.p8 <<'KEY'
+            ${{ secrets.APPLE_OAUTH_PRIVATE_KEY }}
+            KEY
+            chmod 600 /home/ec2-user/app/env/AuthKey_T3NU8PR9HA.p8
 
             # Quick sanity checks
-            echo "==[4] Sanity check config files=="
+            echo "==[5] Sanity check config files=="
             ls -al /home/ec2-user/app/env/application-prod.yml /home/ec2-user/app/env/AuthKey_B4ZKW7CJ8U.p8
             head -n 1 /home/ec2-user/app/env/AuthKey_B4ZKW7CJ8U.p8 | sed 's/./*/g' || true
 
             # DockerHub login
-            echo "==[5] Docker login=="
+            echo "==[6] Docker login=="
             echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
             # === ROLLING DEPLOY START ===
@@ -94,14 +101,14 @@ jobs:
             APP_PORT=8080
             IMAGE="${{ secrets.DOCKER_USERNAME }}/dplay-server:latest"
 
-            echo "==[6] Stop existing container (if any)=="
+            echo "==[7] Stop existing container (if any)=="
             docker stop "$APP_NAME" || true
             docker rm "$APP_NAME" || true
 
-            echo "==[7] Pull latest image=="
+            echo "==[8] Pull latest image=="
             docker pull "$IMAGE"
 
-            echo "==[8] Run new container=="
+            echo "==[9] Run new container=="
             docker run -d \
               -p "${APP_PORT}:8080" \
               --name "$APP_NAME" \
@@ -111,10 +118,10 @@ jobs:
               --spring.profiles.active=prod \
               --spring.config.additional-location=file:/app/application-prod.yml
 
-            echo "==[9] Show container status=="
+            echo "==[10] Show container status=="
             docker ps --filter "name=${APP_NAME}" --no-trunc
 
-            echo "==[10] Health check=="
+            echo "==[11] Health check=="
             HEALTH_OK=0
             for i in $(seq 1 60); do
               # 1) /api/actuator/health
