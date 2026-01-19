@@ -15,6 +15,7 @@ import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.entity.User;
 import org.dplay.server.domain.user.facade.UserFacade;
 import org.dplay.server.domain.user.service.UserService;
+import org.dplay.server.domain.webhook.service.WebhookService;
 import org.dplay.server.global.auth.constant.Constant;
 import org.dplay.server.global.auth.jwt.JwtTokenProvider;
 import org.dplay.server.global.exception.DPlayException;
@@ -35,6 +36,7 @@ public class AuthServiceImpl implements AuthService {
     private final KakaoService kakaoService;
     private final AppleService appleService;
     private final UserService userService;
+    private final WebhookService webhookService;
     private final JwtTokenProvider jwtTokenProvider;
     private final NicknameValidator nicknameValidator;
     private final UserFacade userFacade;
@@ -92,6 +94,13 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = userService.makeUser(platformId, signupRequest.platform(), signupRequest.nickname(), profileImg);
+
+        String message = "[🎉 D💥PLAY에 새로운 유저가 가입했어요!]" +
+                "\n닉네임 : " + user.getNickname() +
+                "\n회원가입 플랫폼 : " + user.getPlatform() +
+                "\n누적 가입자 수 : " + userService.getUserCount();
+
+        webhookService.sendDiscordNotification(message);
 
         JwtTokenResponse tokens = jwtTokenProvider.issueTokens(user.getUserId());
         user.updateRefreshToken(tokens.refreshToken());
