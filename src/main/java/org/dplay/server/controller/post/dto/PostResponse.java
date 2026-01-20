@@ -4,11 +4,14 @@ import org.dplay.server.controller.track.dto.TrackDetailResponse;
 import org.dplay.server.controller.user.dto.UserResponse;
 import org.dplay.server.domain.post.dto.PostResultDto;
 
+import java.time.LocalDate;
+
 public record PostResponse(
         long postId,
         boolean isHost,
         boolean isScrapped,
         String content,
+        LocalDate displayDate,
         TrackDetailResponse track,
         UserResponse user,
         LikeResponse like
@@ -20,6 +23,7 @@ public record PostResponse(
                 result.isHost(),
                 result.isScrapped(),
                 result.content(),
+                result.displayDate(),
                 TrackDetailResponse.from(result.track()),
                 UserResponse.from(result.user()),
                 LikeResponse.of(
