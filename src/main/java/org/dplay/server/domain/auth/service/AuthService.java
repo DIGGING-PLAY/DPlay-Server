@@ -16,7 +16,7 @@ public interface AuthService {
 
     JwtTokenResponse signup(String providerToken, SignupRequest signupRequest, MultipartFile profileImg) throws IOException;
 
-    void withdraw(String accessToken);
+    void withdraw(String accessToken, String authCode);
 
     JwtTokenResponse reissueToken(String refreshToken);
 

@@ -1,5 +1,6 @@
 package org.dplay.server.controller.auth;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -58,9 +59,10 @@ public class AuthController {
 
     @DeleteMapping("/withdraw")
     public ResponseEntity<ApiResponse<Void>> withdraw(
-            @NotNull @RequestHeader(Constant.AUTHORIZATION_HEADER) final String accessToken
+            @NotNull @RequestHeader(Constant.AUTHORIZATION_HEADER) final String accessToken,
+            @Nullable @RequestHeader(value = Constant.APPLE_AUTH_CODE, required = false) final String authCode
     ) {
-        authService.withdraw(accessToken);
+        authService.withdraw(accessToken, authCode);
 
         return ResponseBuilder.ok(null);
     }
