@@ -110,14 +110,17 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void withdraw(final String accessToken) {
+    public void withdraw(final String accessToken, final String authCode) {
         Long userId = getUserIdFromToken(accessToken);
         User user = userService.getUserById(userId);
 
         if (user.getPlatform().equals(Platform.KAKAO)) {
             kakaoService.unlinkKakaoUser(user.getPlatformId());
         } else if (user.getPlatform().equals(Platform.APPLE)) {
-            appleService.revoke(user.getPlatformId());
+            if (authCode == null) {
+                throw new DPlayException(ResponseError.APPLE_REVOKE_FAILED);
+            }
+            appleService.revoke(authCode);
         } else {
             throw new DPlayException(ResponseError.INVALID_PLATFORM_TYPE);
         }
