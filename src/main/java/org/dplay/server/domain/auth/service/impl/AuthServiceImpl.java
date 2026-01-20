@@ -117,6 +117,9 @@ public class AuthServiceImpl implements AuthService {
         if (user.getPlatform().equals(Platform.KAKAO)) {
             kakaoService.unlinkKakaoUser(user.getPlatformId());
         } else if (user.getPlatform().equals(Platform.APPLE)) {
+            if (authCode == null) {
+                throw new DPlayException(ResponseError.APPLE_REVOKE_FAILED);
+            }
             appleService.revoke(authCode);
         } else {
             throw new DPlayException(ResponseError.INVALID_PLATFORM_TYPE);
