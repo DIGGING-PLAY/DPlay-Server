@@ -29,9 +29,9 @@ public record TodayRecommendationFeedResponse(
             Post post = item.post();
             User author = post.getUser();
 
-            TodayRecommendationFeedBadges badges = createBadges(index);
+            Badge badge = createBadge(index);
 
-            itemResponses.add(TodayRecommendationFeedItemResponse.from(item, author, badges));
+            itemResponses.add(TodayRecommendationFeedItemResponse.from(item, author, badge));
         }
 
         return new TodayRecommendationFeedResponse(
@@ -47,17 +47,17 @@ public record TodayRecommendationFeedResponse(
 
     /**
      * 뱃지 생성 로직 (인덱스 기반):
-     * - 첫 번째 곡 (index 0): isEditorPick = true, 나머지 false
-     * - 두 번째 곡 (index 1): isPopular = true, isNew = false, isEditorPick = false
-     * - 세 번째 곡 (index 2): isNew = true, isPopular = false, isEditorPick = false
-     * - 네 번째부터 (index 3+): 모든 뱃지 false
+     * - 첫 번째 곡 (index 0): EDITOR
+     * - 두 번째 곡 (index 1): BEST
+     * - 세 번째 곡 (index 2): NEW
+     * - 네 번째부터 (index 3+): null
      */
-    private static TodayRecommendationFeedBadges createBadges(int index) {
+    private static Badge createBadge(int index) {
         return switch (index) {
-            case 0 -> new TodayRecommendationFeedBadges(true, false, false);
-            case 1 -> new TodayRecommendationFeedBadges(false, true, false);
-            case 2 -> new TodayRecommendationFeedBadges(false, false, true);
-            default -> new TodayRecommendationFeedBadges(false, false, false);
+            case 0 -> Badge.EDITOR;
+            case 1 -> Badge.BEST;
+            case 2 -> Badge.NEW;
+            default -> null;
         };
     }
 }

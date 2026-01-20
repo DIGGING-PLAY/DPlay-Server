@@ -43,21 +43,9 @@ class TodayRecommendationFeedResponseTest {
         TodayRecommendationFeedResponse response = TodayRecommendationFeedResponse.from(resultDto);
 
         assertThat(response.items()).hasSize(3);
-        assertThat(response.items().get(0).badges()).satisfies(badges -> {
-            assertThat(badges.isEditorPick()).isTrue();
-            assertThat(badges.isPopular()).isFalse();
-            assertThat(badges.isNew()).isFalse();
-        });
-        assertThat(response.items().get(1).badges()).satisfies(badges -> {
-            assertThat(badges.isEditorPick()).isTrue();
-            assertThat(badges.isPopular()).isTrue();
-            assertThat(badges.isNew()).isFalse();
-        });
-        assertThat(response.items().get(2).badges()).satisfies(badges -> {
-            assertThat(badges.isEditorPick()).isTrue();
-            assertThat(badges.isPopular()).isFalse();
-            assertThat(badges.isNew()).isTrue();
-        });
+        assertThat(response.items().get(0).badge()).isEqualTo(Badge.EDITOR);
+        assertThat(response.items().get(1).badge()).isEqualTo(Badge.BEST);
+        assertThat(response.items().get(2).badge()).isEqualTo(Badge.NEW);
     }
 
     @Test
@@ -82,9 +70,9 @@ class TodayRecommendationFeedResponseTest {
         TodayRecommendationFeedResponse response = TodayRecommendationFeedResponse.from(resultDto);
 
         assertThat(response.items()).hasSize(3);
-        assertThat(response.items().get(0).badges().isEditorPick()).isTrue();
-        assertThat(response.items().get(1).badges().isPopular()).isTrue();
-        assertThat(response.items().get(2).badges().isNew()).isTrue();
+        assertThat(response.items().get(0).badge()).isEqualTo(Badge.EDITOR);
+        assertThat(response.items().get(1).badge()).isEqualTo(Badge.BEST);
+        assertThat(response.items().get(2).badge()).isEqualTo(Badge.NEW);
     }
 
     private PostFeedItemDto createItem(Long postId,
