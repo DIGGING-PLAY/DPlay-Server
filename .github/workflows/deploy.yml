@@ -91,6 +91,8 @@ jobs:
             echo "==[5] Sanity check config files=="
             ls -al /home/ec2-user/app/env/application-prod.yml /home/ec2-user/app/env/AuthKey_B4ZKW7CJ8U.p8
             head -n 1 /home/ec2-user/app/env/AuthKey_B4ZKW7CJ8U.p8 | sed 's/./*/g' || true
+            ls -al /home/ec2-user/app/env/application-prod.yml /home/ec2-user/app/env/AuthKey_T3NU8PR9HA.p8
+            head -n 1 /home/ec2-user/app/env/AuthKey_T3NU8PR9HA.p8 | sed 's/./*/g' || true
 
             # DockerHub login
             echo "==[6] Docker login=="
@@ -114,6 +116,7 @@ jobs:
               --name "$APP_NAME" \
               -v /home/ec2-user/app/env/application-prod.yml:/app/application-prod.yml:ro \
               -v /home/ec2-user/app/env/AuthKey_B4ZKW7CJ8U.p8:/app/AuthKey_B4ZKW7CJ8U.p8:ro \
+              -v /home/ec2-user/app/env/AuthKey_T3NU8PR9HA.p8:/app/AuthKey_T3NU8PR9HA.p8:ro \
               "$IMAGE" \
               --spring.profiles.active=prod \
               --spring.config.additional-location=file:/app/application-prod.yml
