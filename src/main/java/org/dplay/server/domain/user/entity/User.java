@@ -42,6 +42,9 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private boolean pushOn = false;
 
+    @Column(nullable = false)
+    private boolean isEditor = false;
+
     @Builder
     private User(
             String nickname,
@@ -49,7 +52,8 @@ public class User extends BaseTimeEntity {
             String platformId,
             Platform platform,
             String refreshToken,
-            boolean pushOn
+            boolean pushOn,
+            boolean isEditor
     ) {
         this.nickname = nickname;
         this.profileImg = profileImg;
@@ -57,6 +61,7 @@ public class User extends BaseTimeEntity {
         this.platform = platform;
         this.refreshToken = refreshToken;
         this.pushOn = pushOn;
+        this.isEditor = isEditor;
     }
 
     public void updatePushOn(boolean pushOn) {

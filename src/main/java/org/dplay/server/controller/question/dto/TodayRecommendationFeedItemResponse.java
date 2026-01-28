@@ -9,7 +9,7 @@ public record TodayRecommendationFeedItemResponse(
         long postId,
         boolean isScrapped,
         String content,
-        TodayRecommendationFeedBadges badges,
+        Badge badge,
         TodayRecommendationFeedTrack track,
         TodayRecommendationFeedUser user,
         TodayRecommendationFeedLike like
@@ -17,7 +17,7 @@ public record TodayRecommendationFeedItemResponse(
 
     static TodayRecommendationFeedItemResponse from(PostFeedItemDto dto,
                                                     User author,
-                                                    TodayRecommendationFeedBadges badges) {
+                                                    Badge badge) {
         Post post = dto.post();
         Track track = post.getTrack();
 
@@ -43,7 +43,7 @@ public record TodayRecommendationFeedItemResponse(
                 post.getPostId(),
                 dto.isScrapped(),
                 post.getContent(),
-                badges,
+                badge,
                 feedTrack,
                 feedUser,
                 feedLike
