@@ -10,12 +10,7 @@ import org.dplay.server.domain.common.BaseTimeEntity;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(
-        name = "track",
-        indexes = {
-                @Index(name = "idx_track_artist", columnList = "artist_name")
-        }
-)
+@Table(name = "track")
 public class Track extends BaseTimeEntity {
 
     @Id
@@ -28,7 +23,7 @@ public class Track extends BaseTimeEntity {
     @Column(nullable = false)
     private String songTitle;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1000)
     private String artistName;
 
     private String albumName;
