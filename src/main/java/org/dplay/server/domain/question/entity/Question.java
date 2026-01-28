@@ -42,4 +42,14 @@ public class Question extends BaseTimeEntity {
         this.displayDate = displayDate;
         this.postCount = postCount;
     }
+
+    public void incrementPostCount() {
+        this.postCount++;
+    }
+
+    public void decrementPostCount() {
+        if (this.postCount > 0) {
+            this.postCount--;
+        }
+    }
 }

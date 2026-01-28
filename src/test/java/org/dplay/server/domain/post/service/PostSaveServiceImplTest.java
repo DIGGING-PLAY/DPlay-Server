@@ -475,9 +475,14 @@ class PostSaveServiceImplTest {
                 .build();
         ReflectionTestUtils.setField(post2, "postId", 2L);
 
+        PostSave postSave1 = PostSave.builder().post(post1).user(user).build();
+        ReflectionTestUtils.setField(postSave1, "saveId", 1L);
+        PostSave postSave2 = PostSave.builder().post(post2).user(user).build();
+        ReflectionTestUtils.setField(postSave2, "saveId", 2L);
+
         when(userService.getUserById(userId)).thenReturn(user);
         when(postSaveRepository.countByUserUserId(userId)).thenReturn(2L);
-        when(postRepository.findSavedPostsByUserDesc(userId, null, 21)).thenReturn(List.of(post1, post2));
+        when(postRepository.findSavedPostsByUserDesc(userId, null, 21)).thenReturn(List.of(postSave1, postSave2));
 
         // When
         UserPostsResultDto result = postSaveService.getUserSaves(userId, cursor, limit);
@@ -531,9 +536,12 @@ class PostSaveServiceImplTest {
                 .build();
         ReflectionTestUtils.setField(post, "postId", 3L);
 
+        PostSave postSave = PostSave.builder().post(post).user(user).build();
+        ReflectionTestUtils.setField(postSave, "saveId", 3L);
+
         when(userService.getUserById(userId)).thenReturn(user);
         when(postSaveRepository.countByUserUserId(userId)).thenReturn(10L);
-        when(postRepository.findSavedPostsByUserDesc(userId, 5L, 11)).thenReturn(List.of(post));
+        when(postRepository.findSavedPostsByUserDesc(userId, 5L, 11)).thenReturn(List.of(postSave));
 
         // When
         UserPostsResultDto result = postSaveService.getUserSaves(userId, cursor, limit);
@@ -619,9 +627,16 @@ class PostSaveServiceImplTest {
                 .build();
         ReflectionTestUtils.setField(post3, "postId", 3L);
 
+        PostSave postSave1 = PostSave.builder().post(post1).user(user).build();
+        ReflectionTestUtils.setField(postSave1, "saveId", 1L);
+        PostSave postSave2 = PostSave.builder().post(post2).user(user).build();
+        ReflectionTestUtils.setField(postSave2, "saveId", 2L);
+        PostSave postSave3 = PostSave.builder().post(post3).user(user).build();
+        ReflectionTestUtils.setField(postSave3, "saveId", 3L);
+
         when(userService.getUserById(userId)).thenReturn(user);
         when(postSaveRepository.countByUserUserId(userId)).thenReturn(10L);
-        when(postRepository.findSavedPostsByUserDesc(userId, null, 3)).thenReturn(List.of(post1, post2, post3));
+        when(postRepository.findSavedPostsByUserDesc(userId, null, 3)).thenReturn(List.of(postSave1, postSave2, postSave3));
 
         // When
         UserPostsResultDto result = postSaveService.getUserSaves(userId, cursor, limit);
