@@ -96,12 +96,13 @@ class PostFeedServiceImplTest {
                 .position(1)
                 .build();
 
+        ReflectionTestUtils.setField(question, "postCount", 1);
+
         when(userService.getUserById(USER_ID)).thenReturn(user);
         when(questionService.getQuestionById(QUESTION_ID)).thenReturn(question);
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID))
                 .thenReturn(List.of(editorPick));
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(false);
-        when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(1L);
         when(postLikeService.findLikedPostIds(eq(user), anyList())).thenReturn(List.of());
         when(postSaveService.findScrappedPostIds(eq(user), anyList())).thenReturn(List.of());
 
@@ -148,12 +149,13 @@ class PostFeedServiceImplTest {
         Post feedPost5 = createPost(14L, 20, "feed 5");
         Post feedPost6 = createPost(15L, 15, "excess feed");
 
+        ReflectionTestUtils.setField(question, "postCount", 10);
+
         when(userService.getUserById(USER_ID)).thenReturn(user);
         when(questionService.getQuestionById(QUESTION_ID)).thenReturn(question);
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID))
                 .thenReturn(List.of(editorPick1, editorPick2, editorPick3));
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(true);
-        when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(10L);
         when(postQueryService.findFeedPosts(eq(QUESTION_ID), isNull(), isNull(), eq(6), anyList()))
                 .thenReturn(new ArrayListBuilder<Post>()
                         .add(feedPost1)
@@ -202,12 +204,13 @@ class PostFeedServiceImplTest {
         Post userNewest = createPost(11L, 20, "user newest", QUESTION_DATE.atStartOfDay().plusHours(23));
         Post userAnother = createPost(12L, 15, "user another", QUESTION_DATE.atStartOfDay().plusHours(15));
 
+        ReflectionTestUtils.setField(question, "postCount", 6);
+
         when(questionService.getQuestionByDate(QUESTION_DATE)).thenReturn(question);
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(true);
         when(userService.getUserById(USER_ID)).thenReturn(user);
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID))
                 .thenReturn(List.of(pick1, pick2, pick3));
-        when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(6L);
         when(postQueryService.findAllFeedPosts(eq(QUESTION_ID), anyList()))
                 .thenReturn(List.of(userPopular, userNewest, userAnother));
         when(postLikeService.findLikedPostIds(eq(user), anyList())).thenReturn(List.of(userPopular.getPostId()));
@@ -276,11 +279,12 @@ class PostFeedServiceImplTest {
                 .position(3)
                 .build();
 
+        ReflectionTestUtils.setField(question, "postCount", 10);
+
         when(questionService.getQuestionByDate(QUESTION_DATE)).thenReturn(question);
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(false);
         when(userService.getUserById(USER_ID)).thenReturn(user);
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID)).thenReturn(List.of(pick1, pick2, pick3));
-        when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(10L);
         when(postLikeService.findLikedPostIds(eq(user), anyList())).thenReturn(List.of());
         when(postSaveService.findScrappedPostIds(eq(user), anyList())).thenReturn(List.of());
 
@@ -306,11 +310,12 @@ class PostFeedServiceImplTest {
         Post editorPick1 = createPost(1L, 10, "editor pick 1", QUESTION_DATE.atStartOfDay().plusHours(8));
         QuestionEditorPick pick1 = QuestionEditorPick.builder().question(question).post(editorPick1).position(1).build();
 
+        ReflectionTestUtils.setField(question, "postCount", 0);
+
         when(questionService.getQuestionByDate(QUESTION_DATE)).thenReturn(question);
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(false);
         when(userService.getUserById(USER_ID)).thenReturn(user);
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID)).thenReturn(List.of(pick1));
-        when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(0L);
         when(postLikeService.findLikedPostIds(eq(user), anyList())).thenReturn(List.of());
         when(postSaveService.findScrappedPostIds(eq(user), anyList())).thenReturn(List.of());
 
