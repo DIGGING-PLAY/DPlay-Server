@@ -72,12 +72,18 @@ public class PostServiceImpl implements PostService {
 
         Post savedPost = postRepository.save(post);
 
+        question.incrementPostCount();
+
         return PostDto.of(savedPost);
     }
 
     @Override
     @Transactional
     public void deletePost(User user) {
+        List<Post> posts = postRepository.findAllByUser(user);
+        for (Post post : posts) {
+            post.getQuestion().decrementPostCount();
+        }
         postRepository.deleteAllByUser(user);
     }
 
@@ -87,6 +93,9 @@ public class PostServiceImpl implements PostService {
         Post post = findByPostId(postId);
 
         isPostUser(userId, post);
+
+        Question question = post.getQuestion();
+        question.decrementPostCount();
 
         postRepository.delete(post);
     }

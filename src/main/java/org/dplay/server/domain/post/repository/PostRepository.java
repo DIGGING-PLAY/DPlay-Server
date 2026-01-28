@@ -4,6 +4,8 @@ import org.dplay.server.domain.post.entity.Post;
 import org.dplay.server.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 public interface PostRepository extends JpaRepository<Post, Long>, PostFeedQueryRepository {
 
     boolean existsByQuestionQuestionIdAndUserUserId(Long questionId, Long userId);
@@ -11,6 +13,8 @@ public interface PostRepository extends JpaRepository<Post, Long>, PostFeedQuery
     long countByQuestionQuestionId(Long questionId);
 
     long countByUserUserId(Long userId);
+
+    List<Post> findAllByUser(User user);
 
     void deleteAllByUser(User user);
 }

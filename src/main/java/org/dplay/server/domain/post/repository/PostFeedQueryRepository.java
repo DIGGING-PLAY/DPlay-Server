@@ -1,6 +1,7 @@
 package org.dplay.server.domain.post.repository;
 
 import org.dplay.server.domain.post.entity.Post;
+import org.dplay.server.domain.post.entity.PostSave;
 
 import java.util.List;
 
@@ -31,9 +32,9 @@ public interface PostFeedQueryRepository {
             int limit
     );
 
-    List<Post> findSavedPostsByUserDesc(
+    List<PostSave> findSavedPostsByUserDesc(
             Long userId,
-            Long cursorPostId,
+            Long cursorSaveId,
             int limit
     );
 }

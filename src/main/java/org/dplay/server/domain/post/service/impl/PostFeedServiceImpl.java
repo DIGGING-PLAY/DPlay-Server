@@ -73,7 +73,7 @@ public class PostFeedServiceImpl implements PostFeedService {
         boolean locked = !hasPosted;
 
         int visibleLimit = determineVisibleLimit(limit, locked);
-        long totalCount = postQueryService.countByQuestion(questionId);
+        long totalCount = question.getPostCount();
 
         Cursor decodedCursor = locked ? Cursor.EMPTY : decodeCursor(cursor);
         boolean isFirstPage = !locked && decodedCursor.isEmpty();
@@ -149,7 +149,7 @@ public class PostFeedServiceImpl implements PostFeedService {
         User user = userService.getUserById(userId);
 
         List<QuestionEditorPick> editorPicks = questionEditorPickService.getOrderedEditorPicks(questionId);
-        long totalCount = postQueryService.countByQuestion(questionId);
+        long totalCount = question.getPostCount();
 
         boolean hasPosted = postQueryService.existsByQuestionAndUser(questionId, userId);
         if (hasPosted) {
