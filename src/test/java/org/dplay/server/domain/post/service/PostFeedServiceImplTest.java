@@ -11,7 +11,7 @@ import org.dplay.server.domain.question.service.QuestionService;
 import org.dplay.server.domain.track.entity.Track;
 import org.dplay.server.domain.user.Platform;
 import org.dplay.server.domain.user.entity.User;
-import org.dplay.server.domain.user.repository.UserRepository;
+import org.dplay.server.domain.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +45,7 @@ class PostFeedServiceImplTest {
     @Mock
     private PostSaveService postSaveService;
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     private PostFeedServiceImpl postFeedService;
 
@@ -68,7 +67,7 @@ class PostFeedServiceImplTest {
                 postQueryService,
                 postLikeService,
                 postSaveService,
-                userRepository
+                userService
         );
 
         user = User.builder()
@@ -97,7 +96,7 @@ class PostFeedServiceImplTest {
                 .position(1)
                 .build();
 
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(userService.getUserById(USER_ID)).thenReturn(user);
         when(questionService.getQuestionById(QUESTION_ID)).thenReturn(question);
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID))
                 .thenReturn(List.of(editorPick));
@@ -144,19 +143,25 @@ class PostFeedServiceImplTest {
 
         Post feedPost1 = createPost(10L, 50, "feed 1");
         Post feedPost2 = createPost(11L, 40, "feed 2");
-        Post feedPost3 = createPost(12L, 30, "excess feed");
+        Post feedPost3 = createPost(12L, 30, "feed 3");
+        Post feedPost4 = createPost(13L, 25, "feed 4");
+        Post feedPost5 = createPost(14L, 20, "feed 5");
+        Post feedPost6 = createPost(15L, 15, "excess feed");
 
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(userService.getUserById(USER_ID)).thenReturn(user);
         when(questionService.getQuestionById(QUESTION_ID)).thenReturn(question);
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID))
                 .thenReturn(List.of(editorPick1, editorPick2, editorPick3));
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(true);
-        when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(5L);
-        when(postQueryService.findFeedPosts(eq(QUESTION_ID), isNull(), isNull(), eq(3), anyList()))
+        when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(10L);
+        when(postQueryService.findFeedPosts(eq(QUESTION_ID), isNull(), isNull(), eq(6), anyList()))
                 .thenReturn(new ArrayListBuilder<Post>()
                         .add(feedPost1)
                         .add(feedPost2)
                         .add(feedPost3)
+                        .add(feedPost4)
+                        .add(feedPost5)
+                        .add(feedPost6)
                         .build());
 
         when(postLikeService.findLikedPostIds(eq(user), anyList()))
@@ -172,13 +177,13 @@ class PostFeedServiceImplTest {
         assertThat(result.hasPosted()).isTrue();
         assertThat(result.visibleLimit()).isEqualTo(5);
         assertThat(result.nextCursor()).isNotNull();
-        assertThat(result.items()).hasSize(5); // 3 editor picks + 2 feed posts
+        assertThat(result.items()).hasSize(8); // 3 editor picks + 5 feed posts
         assertThat(result.items().get(0).post().getPostId()).isEqualTo(editorPost1.getPostId());
         assertThat(result.items().get(3).post().getPostId()).isEqualTo(feedPost1.getPostId());
         assertThat(result.items().get(3).isLiked()).isTrue();
         assertThat(result.items().get(4).isScrapped()).isTrue();
 
-        verify(postQueryService).findFeedPosts(eq(QUESTION_ID), isNull(), isNull(), eq(3), anyList());
+        verify(postQueryService).findFeedPosts(eq(QUESTION_ID), isNull(), isNull(), eq(6), anyList());
     }
 
     @Test
@@ -199,7 +204,7 @@ class PostFeedServiceImplTest {
 
         when(questionService.getQuestionByDate(QUESTION_DATE)).thenReturn(question);
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(true);
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(userService.getUserById(USER_ID)).thenReturn(user);
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID))
                 .thenReturn(List.of(pick1, pick2, pick3));
         when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(6L);
@@ -273,7 +278,7 @@ class PostFeedServiceImplTest {
 
         when(questionService.getQuestionByDate(QUESTION_DATE)).thenReturn(question);
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(false);
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(userService.getUserById(USER_ID)).thenReturn(user);
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID)).thenReturn(List.of(pick1, pick2, pick3));
         when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(10L);
         when(postLikeService.findLikedPostIds(eq(user), anyList())).thenReturn(List.of());
@@ -303,7 +308,7 @@ class PostFeedServiceImplTest {
 
         when(questionService.getQuestionByDate(QUESTION_DATE)).thenReturn(question);
         when(postQueryService.existsByQuestionAndUser(QUESTION_ID, USER_ID)).thenReturn(false);
-        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(userService.getUserById(USER_ID)).thenReturn(user);
         when(questionEditorPickService.getOrderedEditorPicks(QUESTION_ID)).thenReturn(List.of(pick1));
         when(postQueryService.countByQuestion(QUESTION_ID)).thenReturn(0L);
         when(postLikeService.findLikedPostIds(eq(user), anyList())).thenReturn(List.of());

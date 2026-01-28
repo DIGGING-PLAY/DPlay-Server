@@ -112,22 +112,26 @@ public class PostSaveServiceImpl implements PostSaveService {
 
         int visibleLimit = determineLimit(limit);
 
-        Long cursorPostId = decodeCursor(cursor);
+        Long cursorSaveId = decodeCursor(cursor);
 
         long totalCount = postSaveRepository.countByUserUserId(userId);
 
         int fetchSize = visibleLimit + 1;
-        List<Post> fetched = postRepository.findSavedPostsByUserDesc(userId, cursorPostId, fetchSize);
+        List<PostSave> fetched = postRepository.findSavedPostsByUserDesc(userId, cursorSaveId, fetchSize);
 
         String nextCursor = null;
-        List<Post> resultPosts;
+        List<PostSave> resultSaves;
         if (fetched.size() > visibleLimit) {
-            Post lastReturnedPost = fetched.get(visibleLimit - 1);
-            nextCursor = encodeCursor(lastReturnedPost.getPostId());
-            resultPosts = new ArrayList<>(fetched.subList(0, visibleLimit));
+            PostSave lastReturnedSave = fetched.get(visibleLimit - 1);
+            nextCursor = encodeCursor(lastReturnedSave.getSaveId());
+            resultSaves = new ArrayList<>(fetched.subList(0, visibleLimit));
         } else {
-            resultPosts = fetched;
+            resultSaves = fetched;
         }
+
+        List<Post> resultPosts = resultSaves.stream()
+                .map(PostSave::getPost)
+                .toList();
 
         return UserPostsResultDto.from(
                 visibleLimit,

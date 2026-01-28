@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import org.dplay.server.domain.post.entity.Post;
+import org.dplay.server.domain.post.entity.PostSave;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -145,28 +146,29 @@ public class PostFeedQueryRepositoryImpl implements PostFeedQueryRepository {
     }
 
     @Override
-    public List<Post> findSavedPostsByUserDesc(
+    public List<PostSave> findSavedPostsByUserDesc(
             Long userId,
-            Long cursorPostId,
+            Long cursorSaveId,
             int limit
     ) {
-        StringBuilder jpql = new StringBuilder("SELECT ps.post FROM PostSave ps ");
-        jpql.append("JOIN FETCH ps.post.user u ");
-        jpql.append("JOIN FETCH ps.post.track t ");
+        StringBuilder jpql = new StringBuilder("SELECT ps FROM PostSave ps ");
+        jpql.append("JOIN FETCH ps.post p ");
+        jpql.append("JOIN FETCH p.user u ");
+        jpql.append("JOIN FETCH p.track t ");
         jpql.append("WHERE ps.user.userId = :userId ");
 
-        if (cursorPostId != null) {
-            jpql.append("AND ps.post.postId < :cursorPostId ");
+        if (cursorSaveId != null) {
+            jpql.append("AND ps.saveId < :cursorSaveId ");
         }
 
-        jpql.append("ORDER BY ps.post.postId DESC");
+        jpql.append("ORDER BY ps.saveId DESC");
 
-        TypedQuery<Post> query = entityManager.createQuery(jpql.toString(), Post.class)
+        TypedQuery<PostSave> query = entityManager.createQuery(jpql.toString(), PostSave.class)
                 .setParameter("userId", userId)
                 .setMaxResults(limit);
 
-        if (cursorPostId != null) {
-            query.setParameter("cursorPostId", cursorPostId);
+        if (cursorSaveId != null) {
+            query.setParameter("cursorSaveId", cursorSaveId);
         }
 
         return query.getResultList();
