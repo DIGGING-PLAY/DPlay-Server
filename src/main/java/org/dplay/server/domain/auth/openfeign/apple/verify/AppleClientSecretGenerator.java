@@ -60,7 +60,7 @@ public class AppleClientSecretGenerator {
                     .signWith(SignatureAlgorithm.ES256, privateKey)
                     .compact();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to generate Apple Music developer token", e);
+            throw new RuntimeException("Failed to generate Apple OAuth developer token", e);
         }
     }
 
