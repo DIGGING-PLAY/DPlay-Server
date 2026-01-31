@@ -30,7 +30,8 @@ public record PastRecommendationFeedItemResponse(
         PastRecommendationFeedUser feedUser = new PastRecommendationFeedUser(
                 author.getUserId(),
                 author.getNickname(),
-                author.getProfileImg()
+                author.getProfileImg(),
+                author.isEditor()
         );
 
         PastRecommendationFeedLike feedLike = new PastRecommendationFeedLike(
