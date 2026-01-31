@@ -5,9 +5,10 @@ import org.dplay.server.domain.user.entity.User;
 public record UserDetailResultDto(
         Long userId,
         String nickname,
-        String profileImg
+        String profileImg,
+        boolean isAdmin
 ) {
     public static UserDetailResultDto from(User user) {
-        return new UserDetailResultDto(user.getUserId(), user.getNickname(), user.getProfileImg());
+        return new UserDetailResultDto(user.getUserId(), user.getNickname(), user.getProfileImg(), user.isEditor());
     }
 }
