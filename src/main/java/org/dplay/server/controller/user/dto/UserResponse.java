@@ -5,10 +5,11 @@ import org.dplay.server.domain.user.dto.UserDetailResultDto;
 public record UserResponse(
         Long userId,
         String nickname,
-        String profileImg
+        String profileImg,
+        boolean isAdmin
 ) {
 
     public static UserResponse from(UserDetailResultDto resultDto) {
-        return new UserResponse(resultDto.userId(), resultDto.nickname(), resultDto.profileImg());
+        return new UserResponse(resultDto.userId(), resultDto.nickname(), resultDto.profileImg(), resultDto.isAdmin());
     }
 }

@@ -31,7 +31,8 @@ public record TodayRecommendationFeedItemResponse(
         TodayRecommendationFeedUser feedUser = new TodayRecommendationFeedUser(
                 author.getUserId(),
                 author.getNickname(),
-                author.getProfileImg()
+                author.getProfileImg(),
+                author.isEditor()
         );
 
         TodayRecommendationFeedLike feedLike = new TodayRecommendationFeedLike(
