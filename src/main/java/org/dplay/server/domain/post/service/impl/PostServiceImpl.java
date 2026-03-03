@@ -129,20 +129,6 @@ public class PostServiceImpl implements PostService {
     public PostResultDto getPostDetailByPostId(final long postId, final long userId) {
         Post post = findByPostId(postId);
 
-        boolean isEditorPick = questionEditorPickService.existsByPost(post);
-        Question postQuestion = post.getQuestion();
-
-        if (!isEditorPick) {
-            boolean hasWrittenPostForQuestion = postRepository.existsByQuestionQuestionIdAndUserUserId(
-                    postQuestion.getQuestionId(),
-                    userId
-            );
-
-            if (!hasWrittenPostForQuestion) {
-                throw new DPlayException(ResponseError.FORBIDDEN_RESOURCE);
-            }
-        }
-
         User currentUser = userService.getUserById(userId);
         User postAuthor = post.getUser();
         UserDetailResultDto userDetailResultDto = UserDetailResultDto.from(postAuthor);
